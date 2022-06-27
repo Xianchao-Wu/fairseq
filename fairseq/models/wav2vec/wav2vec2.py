@@ -42,6 +42,7 @@ LAYER_TYPE_CHOICES = ChoiceEnum(["transformer", "conformer"])
 
 @dataclass
 class Wav2Vec2Config(FairseqDataclass):
+    #import ipdb; ipdb.set_trace()
     extractor_mode: EXTRACTOR_MODE_CHOICES = field(
         default="default",
         metadata={
@@ -288,11 +289,14 @@ class Wav2Vec2Config(FairseqDataclass):
         metadata={"help": "Positional encoding type to use in conformer"},
     )
     fp16: bool = field(default=False, metadata={"help": "If fp16 is being used"})
+    debug: bool = field(default=False, metadata={"help": "If in debug (ipdb.tracing) mode."})
 
 
 @register_model("wav2vec2", dataclass=Wav2Vec2Config)
 class Wav2Vec2Model(BaseFairseqModel):
     def __init__(self, cfg: Wav2Vec2Config):
+        if cfg.debug:
+            import ipdb; ipdb.set_trace()
         super().__init__()
         self.cfg = cfg
 
@@ -401,12 +405,15 @@ class Wav2Vec2Model(BaseFairseqModel):
         self.final_proj = nn.Linear(cfg.encoder_embed_dim, final_dim)
 
     def upgrade_state_dict_named(self, state_dict, name):
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         super().upgrade_state_dict_named(state_dict, name)
         """Upgrade a (possibly old) state dict for new versions of fairseq."""
         return state_dict
 
     @classmethod
     def build_model(cls, cfg: Wav2Vec2Config, task=None):
+        #import ipdb; ipdb.set_trace()
         """Build a new model instance."""
 
         return cls(cfg)
@@ -418,6 +425,8 @@ class Wav2Vec2Model(BaseFairseqModel):
         mask_indices=None,
         mask_channel_indices=None,
     ):
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         B, T, C = x.shape
 
         if self.mask_channel_prob > 0 and self.mask_channel_before:
@@ -482,7 +491,8 @@ class Wav2Vec2Model(BaseFairseqModel):
         return x, mask_indices
 
     def sample_negatives(self, y, num, padding_count=None):
-
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         if self.n_negatives == 0 and self.cross_sample_negatives == 0:
             return y.new(0)
 
@@ -540,6 +550,8 @@ class Wav2Vec2Model(BaseFairseqModel):
         return negs, neg_idxs
 
     def compute_preds(self, x, y, negatives):
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
 
         neg_is_pos = (y == negatives).all(-1)
         y = y.unsqueeze(0)
@@ -562,6 +574,8 @@ class Wav2Vec2Model(BaseFairseqModel):
         return logits
 
     def _get_feat_extract_output_lengths(self, input_lengths: torch.LongTensor):
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         """
         Computes the output length of the convolutional layers
         """
@@ -589,7 +603,8 @@ class Wav2Vec2Model(BaseFairseqModel):
         mask_channel_indices=None,
         padding_count=None,
     ):
-
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         if self.feature_grad_mult > 0:
             features = self.feature_extractor(source)
             if self.feature_grad_mult != 1.0:
@@ -597,13 +612,15 @@ class Wav2Vec2Model(BaseFairseqModel):
         else:
             with torch.no_grad():
                 features = self.feature_extractor(source)
-
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace() # TODO 1
         features_pen = features.float().pow(2).mean()
 
         features = features.transpose(1, 2)
         features = self.layer_norm(features)
         unmasked_features = features.clone()
-
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace() # TODO 2
         if padding_mask is not None and padding_mask.any():
             input_lengths = (1 - padding_mask.long()).sum(-1)
             # apply conv formula to get real output_lengths
@@ -624,17 +641,20 @@ class Wav2Vec2Model(BaseFairseqModel):
             padding_mask = (1 - padding_mask.flip([-1]).cumsum(-1).flip([-1])).bool()
         else:
             padding_mask = None
-
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace() # TODO 3
         time_steps_to_drop = features.size(1) % self.crop_seq_to_multiple
         if time_steps_to_drop != 0:
             features = features[:, :-time_steps_to_drop]
             unmasked_features = unmasked_features[:, :-time_steps_to_drop]
             if padding_mask is not None:
                 padding_mask = padding_mask[:, :-time_steps_to_drop]
-
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace() # TODO 4
         if self.post_extract_proj is not None:
             features = self.post_extract_proj(features)
-
+        if self.cfg.debug:
+            ipdb.set_trace() # TODO 5
         features = self.dropout_input(features)
         unmasked_features = self.dropout_features(unmasked_features)
 
@@ -651,7 +671,8 @@ class Wav2Vec2Model(BaseFairseqModel):
             prob_ppl = q["prob_perplexity"]
             curr_temp = q["temp"]
             features = self.project_inp(features)
-
+        if self.cfg.debug:
+            ipdb.set_trace() # TODO 6
         if mask:
             x, mask_indices = self.apply_mask(
                 features,
@@ -671,9 +692,11 @@ class Wav2Vec2Model(BaseFairseqModel):
             x = features
             y = unmasked_features
             mask_indices = None
-
+        if self.cfg.debug:
+            ipdb.set_trace() # TODO 7
         x, layer_results = self.encoder(x, padding_mask=padding_mask, layer=layer)
-
+        if self.cfg.debug:
+            ipdb.set_trace() # TODO 8
         if features_only:
             return {
                 "x": x,
@@ -681,7 +704,8 @@ class Wav2Vec2Model(BaseFairseqModel):
                 "features": unmasked_features,
                 "layer_results": layer_results,
             }
-
+        if self.cfg.debug:
+            ipdb.set_trace() # TODO 9
         if self.quantizer:
             if self.negatives_from_everywhere:
                 q = self.quantizer(unmasked_features, produce_targets=False)
@@ -696,11 +720,11 @@ class Wav2Vec2Model(BaseFairseqModel):
                     y,
                     mask_indices[0].sum(),
                     padding_count=padding_count,
-                )
+                ) 
                 y = y[mask_indices].view(y.size(0), -1, y.size(-1))
 
             else:
-                q = self.quantizer(y, produce_targets=False)
+                q = self.quantizer(y, produce_targets=False) # TODO here!!!
                 y = q["x"]
                 num_vars = q["num_vars"]
                 code_ppl = q["code_perplexity"]
@@ -713,8 +737,8 @@ class Wav2Vec2Model(BaseFairseqModel):
                     y,
                     y.size(1),
                     padding_count=padding_count,
-                )
-
+                ) # e.g., a set of distractors (such as 100 entries), Q_t for q_t; Equation (3) in 
+                # https://arxiv.org/abs/2006.11477
             if self.codebook_negatives > 0:
                 cb_negs = self.quantizer.sample_from_codebook(
                     y.size(0) * y.size(1), self.codebook_negatives
@@ -740,7 +764,8 @@ class Wav2Vec2Model(BaseFairseqModel):
                     y.size(1),
                     padding_count=padding_count,
                 )
-
+        if self.cfg.debug:
+            ipdb.set_trace() # TODO 10 
         if not is_xla_tensor(x):
             # tpu-comment: reducing the size in a dynamic way causes
             # too many recompilations on xla.
@@ -749,7 +774,8 @@ class Wav2Vec2Model(BaseFairseqModel):
         if self.target_glu:
             y = self.target_glu(y)
             negs = self.target_glu(negs)
-
+        if self.cfg.debug:
+            ipdb.set_trace() # TODO 11
         x = self.final_proj(x)
         x = self.compute_preds(x, y, negs)
 
@@ -764,10 +790,13 @@ class Wav2Vec2Model(BaseFairseqModel):
             result["code_perplexity"] = code_ppl
             result["num_vars"] = num_vars
             result["temp"] = curr_temp
-
+        if self.cfg.debug:
+            ipdb.set_trace() # TODO 12
         return result
 
     def quantize(self, x):
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         assert self.quantizer is not None
         x = self.feature_extractor(x)
         x = x.transpose(1, 2)
@@ -775,36 +804,46 @@ class Wav2Vec2Model(BaseFairseqModel):
         return self.quantizer.forward_idx(x)
 
     def extract_features(self, source, padding_mask, mask=False, layer=None):
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         res = self.forward(
             source, padding_mask, mask=mask, features_only=True, layer=layer
         )
         return res
 
     def get_logits(self, net_output):
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         logits = net_output["x"]
         logits = logits.transpose(0, 2)
         logits = logits.reshape(-1, logits.size(-1))
         return logits
 
     def get_targets(self, sample, net_output, expand_steps=True):
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         x = net_output["x"]
         return x.new_zeros(x.size(1) * x.size(2), dtype=torch.long)
 
     def get_extra_losses(self, net_output):
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         pen = []
 
         if "prob_perplexity" in net_output:
             pen.append(
                 (net_output["num_vars"] - net_output["prob_perplexity"])
                 / net_output["num_vars"]
-            )
+            ) # act as "diversity loss" -> max entropy, so that codewords are (as much as possible) equally used
 
         if "features_pen" in net_output:
-            pen.append(net_output["features_pen"])
+            pen.append(net_output["features_pen"]) # L2 feature penalty, features.pow(2).mean()
 
         return pen
 
     def remove_pretraining_modules(self, last_layer=None):
+        if self.cfg.debug:
+            import ipdb; ipdb.set_trace()
         self.quantizer = None
         self.project_q = None
         self.target_glu = None
@@ -824,6 +863,7 @@ class ConvFeatureExtractionModel(nn.Module):
         mode: str = "default",
         conv_bias: bool = False,
     ):
+        #import ipdb; ipdb.set_trace()
         super().__init__()
 
         assert mode in {"default", "layer_norm"}
@@ -887,6 +927,7 @@ class ConvFeatureExtractionModel(nn.Module):
             in_d = dim
 
     def forward(self, x):
+        #import ipdb; ipdb.set_trace()
 
         # BxT -> BxCxT
         x = x.unsqueeze(1)
@@ -898,6 +939,7 @@ class ConvFeatureExtractionModel(nn.Module):
 
 
 def make_conv_pos(e, k, g):
+    #import ipdb; ipdb.set_trace()
     pos_conv = nn.Conv1d(
         e,
         e,
@@ -918,6 +960,7 @@ def make_conv_pos(e, k, g):
 
 class TransformerEncoder(nn.Module):
     def build_encoder_layer(self, args: Wav2Vec2Config):
+        #import ipdb; ipdb.set_trace()
         if args.layer_type == "transformer":
             layer = TransformerSentenceEncoderLayer(
                 embedding_dim=self.embedding_dim,
@@ -947,6 +990,7 @@ class TransformerEncoder(nn.Module):
         return layer
 
     def __init__(self, args: Wav2Vec2Config):
+        #import ipdb; ipdb.set_trace()
         super().__init__()
 
         self.dropout = args.dropout
@@ -1000,6 +1044,7 @@ class TransformerEncoder(nn.Module):
         self.apply(init_bert_params)
 
     def forward(self, x, padding_mask=None, layer=None):
+        #import ipdb; ipdb.set_trace()
         x, layer_results = self.extract_features(x, padding_mask, layer)
 
         if self.layer_norm_first and layer is None:
@@ -1014,7 +1059,7 @@ class TransformerEncoder(nn.Module):
         tgt_layer=None,
         min_layer=0,
     ):
-
+        #import ipdb; ipdb.set_trace()
         if padding_mask is not None:
             x = index_put(x, padding_mask, 0)
 
@@ -1054,10 +1099,10 @@ class TransformerEncoder(nn.Module):
             if i == tgt_layer:
                 r = x
                 break
-
+        #import ipdb; ipdb.set_trace()
         if r is not None:
             x = r
-
+        #import ipdb; ipdb.set_trace()
         # T x B x C -> B x T x C
         x = x.transpose(0, 1)
 
@@ -1073,20 +1118,23 @@ class TransformerEncoder(nn.Module):
                 )
 
             layer_results = [undo_pad(*u) for u in layer_results]
-
+        #import ipdb; ipdb.set_trace()
         return x, layer_results
 
     def max_positions(self):
+        #import ipdb; ipdb.set_trace()
         """Maximum output length supported by the encoder."""
         return self.args.max_positions
 
     def upgrade_state_dict_named(self, state_dict, name):
+        #import ipdb; ipdb.set_trace()
         """Upgrade a (possibly old) state dict for new versions of fairseq."""
         return state_dict
 
 
 class ConformerEncoder(TransformerEncoder):
     def build_encoder_layer(self, args):
+        #import ipdb; ipdb.set_trace()
         layer = ConformerWav2Vec2EncoderLayer(
             embed_dim=self.embedding_dim,
             ffn_embed_dim=args.encoder_ffn_embed_dim,
@@ -1104,6 +1152,7 @@ class ConformerEncoder(TransformerEncoder):
         return layer
 
     def __init__(self, args):
+        #import ipdb; ipdb.set_trace()
         super().__init__(args)
         self.args = args
         self.dropout = args.dropout
@@ -1130,6 +1179,7 @@ class ConformerEncoder(TransformerEncoder):
         self.apply(init_bert_params)
 
     def extract_features(self, x, padding_mask=None, tgt_layer=None):
+        #import ipdb; ipdb.set_trace()
         if padding_mask is not None:
             x = index_put(x, padding_mask, 0)
 
@@ -1189,7 +1239,7 @@ class TransformerSentenceEncoderLayer(nn.Module):
         activation_fn: str = "relu",
         layer_norm_first: bool = False,
     ) -> None:
-
+        #import ipdb; ipdb.set_trace()
         super().__init__()
         # Initialize parameters
         self.embedding_dim = embedding_dim
@@ -1231,6 +1281,7 @@ class TransformerSentenceEncoderLayer(nn.Module):
         LayerNorm is applied either before or after the self-attention/ffn
         modules similar to the original Transformer imlementation.
         """
+        #import ipdb; ipdb.set_trace()
         residual = x
 
         if self.layer_norm_first:

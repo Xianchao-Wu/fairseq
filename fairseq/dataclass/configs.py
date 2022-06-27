@@ -142,6 +142,7 @@ class CommonConfig(FairseqDataclass):
     seed: int = field(
         default=1, metadata={"help": "pseudo random number generator seed"}
     )
+    debug: bool = field(default=False, metadata={"help": "In debug mode (ipdb tracing) or not"})
     cpu: bool = field(default=False, metadata={"help": "use CPU instead of CUDA"})
     tpu: bool = field(default=False, metadata={"help": "use TPU instead of CUDA"})
     bf16: bool = field(default=False, metadata={"help": "use bfloat16; implies --tpu"})

@@ -503,23 +503,28 @@ class FairseqTask(object):
                 - the loss
                 - the sample size, which is used as the denominator for the
                   gradient
-                - logging outputs to display while training
-        """
+                - logging outputs to display while training"""
+        #import ipdb; ipdb.set_trace()
         model.train()
         model.set_num_updates(update_num)
         with torch.autograd.profiler.record_function("forward"):
             with torch.cuda.amp.autocast(enabled=(isinstance(optimizer, AMPOptimizer))):
                 loss, sample_size, logging_output = criterion(model, sample)
+        #import ipdb; ipdb.set_trace()
         if ignore_grad:
             loss *= 0
+        #import ipdb; ipdb.set_trace()
         with torch.autograd.profiler.record_function("backward"):
             optimizer.backward(loss)
+        #import ipdb; ipdb.set_trace()
         return loss, sample_size, logging_output
 
     def valid_step(self, sample, model, criterion):
+        #import ipdb; ipdb.set_trace()
         model.eval()
         with torch.no_grad():
             loss, sample_size, logging_output = criterion(model, sample)
+        #import ipdb; ipdb.set_trace()
         return loss, sample_size, logging_output
 
     def optimizer_step(self, optimizer, model, update_num):

@@ -37,6 +37,7 @@ VQ_TYPE_CHOICES = ChoiceEnum(["none", "gumbel", "kmeans"])
 
 @dataclass
 class Wav2VecConfig(FairseqDataclass):
+    #import ipdb; ipdb.set_trace()
     prediction_steps: int = field(
         default=12, metadata={"help": "number of steps ahead to predict"}
     )
@@ -170,6 +171,7 @@ class Wav2VecModel(BaseFairseqModel):
         return model
 
     def __init__(self, cfg: Wav2VecConfig):
+        #import ipdb; ipdb.set_trace()
         super().__init__()
 
         self.prediction_steps = cfg.prediction_steps
@@ -239,6 +241,7 @@ class Wav2VecModel(BaseFairseqModel):
         offset = int(offset)
 
         def make_aggregator():
+            #import ipdb; ipdb.set_trace()
             if cfg.aggregator == "cnn":
                 agg_layers = eval(cfg.conv_aggregator_layers)
                 agg_dim = agg_layers[-1][0]
@@ -296,6 +299,7 @@ class Wav2VecModel(BaseFairseqModel):
             self.project_features, _ = make_aggregator()
 
     def forward(self, source):
+        #import ipdb; ipdb.set_trace()
         result = {}
 
         features = self.feature_extractor(source)
@@ -319,29 +323,35 @@ class Wav2VecModel(BaseFairseqModel):
         return result
 
     def upgrade_state_dict_named(self, state_dict, name):
+        #import ipdb; ipdb.set_trace()
         super().upgrade_state_dict_named(state_dict, name)
 
     def max_positions(self):
+        #import ipdb; ipdb.set_trace()
         """Maximum length supported by the model."""
         return sys.maxsize
 
     def get_logits(self, net_output):
+        #import ipdb; ipdb.set_trace()
         logits = net_output["cpc_logits"]
         return logits
 
     def get_targets(self, sample, net_output):
+        #import ipdb; ipdb.set_trace()
         t = net_output["cpc_targets"]
         if isinstance(t, tuple):
             t = t[0]
         return t.contiguous()
 
     def get_target_weights(self, targets, net_output):
+        #import ipdb; ipdb.set_trace()
         targets = net_output["cpc_targets"]
         if isinstance(targets, tuple) and targets[-1] is not None:
             return targets[-1]
         return None
 
     def get_extra_losses(self, net_output):
+        #import ipdb; ipdb.set_trace()
         loss = None
         if "prob_perplexity" in net_output:
             loss = net_output["num_vars"] - net_output["prob_perplexity"]
@@ -352,6 +362,7 @@ class Wav2VecModel(BaseFairseqModel):
 
 
 def norm_block(is_layer_norm, dim, affine=True):
+    #import ipdb; ipdb.set_trace()
     if is_layer_norm:
         mod = nn.Sequential(
             TransposeLast(),
@@ -375,6 +386,7 @@ class ConvFeatureExtractionModel(nn.Module):
         non_affine_group_norm,
         activation,
     ):
+        #import ipdb; ipdb.set_trace()
         super().__init__()
 
         def block(n_in, n_out, k, stride):
@@ -398,6 +410,7 @@ class ConvFeatureExtractionModel(nn.Module):
         self.residual_scale = math.sqrt(residual_scale)
 
     def forward(self, x):
+        #import ipdb; ipdb.set_trace()
         # BxT -> BxCxT
         x = x.unsqueeze(1)
 
@@ -420,11 +433,13 @@ class ConvFeatureExtractionModel(nn.Module):
 
 class ZeroPad1d(nn.Module):
     def __init__(self, pad_left, pad_right):
+        #import ipdb; ipdb.set_trace()
         super().__init__()
         self.pad_left = pad_left
         self.pad_right = pad_right
 
     def forward(self, x):
+        #import ipdb; ipdb.set_trace()
         return F.pad(x, (self.pad_left, self.pad_right))
 
 
@@ -441,6 +456,7 @@ class ConvAggegator(nn.Module):
         zero_pad,
         activation,
     ):
+        #import ipdb; ipdb.set_trace()
         super().__init__()
 
         def block(n_in, n_out, k, stride):
@@ -476,6 +492,7 @@ class ConvAggegator(nn.Module):
         self.residual_scale = math.sqrt(residual_scale)
 
     def forward(self, x):
+        #import ipdb; ipdb.set_trace()
         for rproj, conv in zip(self.residual_proj, self.conv_layers):
             residual = x
             x = conv(x)
@@ -500,6 +517,7 @@ class Wav2VecPredictionsModel(nn.Module):
         balanced_classes,
         infonce,
     ):
+        #import ipdb; ipdb.set_trace()
         super().__init__()
 
         self.n_negatives = n_negatives
@@ -514,6 +532,7 @@ class Wav2VecPredictionsModel(nn.Module):
         self.infonce = infonce
 
     def sample_negatives(self, y):
+        #import ipdb; ipdb.set_trace()
         bsz, fsz, tsz = y.shape
 
         y = y.transpose(0, 1)  # BCT -> CBT
@@ -573,7 +592,7 @@ class Wav2VecPredictionsModel(nn.Module):
         return negs
 
     def forward(self, x, y):
-
+        #import ipdb; ipdb.set_trace()
         x = x.unsqueeze(-1)
         x = self.project_to_steps(x)  # BxCxTxS
         x = self.dropout(x)

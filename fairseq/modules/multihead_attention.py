@@ -39,12 +39,12 @@ class MultiheadAttention(nn.Module):
         q_noise=0.0,
         qn_block_size=8,
     ):
+        #import ipdb; ipdb.set_trace()
         super().__init__()
         self.embed_dim = embed_dim
         self.kdim = kdim if kdim is not None else embed_dim
         self.vdim = vdim if vdim is not None else embed_dim
         self.qkv_same_dim = self.kdim == embed_dim and self.vdim == embed_dim
-
         self.num_heads = num_heads
         self.dropout_module = FairseqDropout(
             dropout, module_name=self.__class__.__name__
@@ -273,7 +273,7 @@ class MultiheadAttention(nn.Module):
         """
         if need_head_weights:
             need_weights = True
-
+        #import ipdb; ipdb.set_trace()
         is_tpu = query.device.type == "xla"
 
         tgt_len, bsz, embed_dim = query.size()

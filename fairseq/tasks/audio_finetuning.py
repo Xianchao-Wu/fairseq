@@ -30,15 +30,18 @@ logger = logging.getLogger(__name__)
 
 class LabelEncoder(object):
     def __init__(self, dictionary):
+        #import ipdb; ipdb.set_trace()
         self.dictionary = dictionary
 
     def __call__(self, label):
+        #import ipdb; ipdb.set_trace()
         return self.dictionary.encode_line(
             label, append_eos=False, add_if_not_exist=False
         )
 
 
 def label_len_fn(label):
+    #import ipdb; ipdb.set_trace()
     return len(label.split(" "))
 
 
@@ -46,6 +49,7 @@ def label_len_fn(label):
 class AudioFinetuningConfig(AudioPretrainingConfig):
     # Options for reporting WER metrics during validation. Only applicable to
     # Seq2Seq models during fine-tuning
+    ##import ipdb; ipdb.set_trace()
     eval_wer: bool = field(
         default=False, metadata={"help": "compute WER for Seq2Seq models"}
     )
@@ -112,12 +116,14 @@ class AudioFinetuningTask(AudioPretrainingTask):
         self,
         cfg: AudioFinetuningConfig,
     ):
+        #import ipdb; ipdb.set_trace()
         super().__init__(cfg)
         self.blank_symbol = "<s>"
 
         self.state.add_factory("target_dictionary", self.load_target_dictionary)
 
     def load_target_dictionary(self):
+        #import ipdb; ipdb.set_trace()
         if self.cfg.labels:
             dict_path = os.path.join(self.cfg.data, f"dict.{self.cfg.labels}.txt")
             return Dictionary.load(dict_path)
@@ -126,6 +132,7 @@ class AudioFinetuningTask(AudioPretrainingTask):
     def load_dataset(
         self, split: str, task_cfg: AudioFinetuningConfig = None, **kwargs
     ):
+        #import ipdb; ipdb.set_trace()
         super().load_dataset(split, task_cfg, **kwargs)
 
         task_cfg = task_cfg or self.cfg
@@ -167,9 +174,11 @@ class AudioFinetuningTask(AudioPretrainingTask):
     def target_dictionary(self):
         """Return the :class:`~fairseq.data.Dictionary` for the language
         model."""
+        #import ipdb; ipdb.set_trace()
         return self.state.target_dictionary
 
     def valid_step(self, sample, model, criterion):
+        #import ipdb; ipdb.set_trace()
         loss, sample_size, logging_output = super().valid_step(sample, model, criterion)
         if self.cfg.eval_wer and self.cfg.autoregressive:
             metrics = self._inference_with_wer(self.sequence_generator, sample, model)
@@ -190,6 +199,7 @@ class AudioFinetuningTask(AudioPretrainingTask):
         return loss, sample_size, logging_output
 
     def build_model(self, model_cfg: FairseqDataclass, from_checkpoint=False):
+        #import ipdb; ipdb.set_trace()
         model = super().build_model(model_cfg, from_checkpoint)
 
         if self.cfg.eval_wer and self.cfg.autoregressive:
@@ -218,9 +228,11 @@ class AudioFinetuningTask(AudioPretrainingTask):
         return model
 
     def _inference_with_wer(self, generator, sample, model):
+        #import ipdb; ipdb.set_trace()
         import editdistance
 
         def decode(toks):
+            #import ipdb; ipdb.set_trace()
             s = self.target_dictionary.string(
                 toks.int().cpu(),
                 self.cfg.eval_wer_post_process,
@@ -253,9 +265,11 @@ class AudioFinetuningTask(AudioPretrainingTask):
         }
 
     def _inference_with_bleu(self, generator, sample, model):
+        #import ipdb; ipdb.set_trace()
         import sacrebleu
 
         def decode(toks, is_ref):
+            #import ipdb; ipdb.set_trace()
             s = self.target_dictionary.string(
                 toks.int().cpu(),
                 self.cfg.eval_bleu_remove_bpe,
@@ -288,6 +302,7 @@ class AudioFinetuningTask(AudioPretrainingTask):
         return sacrebleu.corpus_bleu(hyps, [refs], tokenize=eval_tokenization)
 
     def reduce_metrics(self, logging_outputs, criterion):
+        #import ipdb; ipdb.set_trace()
         super().reduce_metrics(logging_outputs, criterion)
 
         if self.cfg.eval_wer:

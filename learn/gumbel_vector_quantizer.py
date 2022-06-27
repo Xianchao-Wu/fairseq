@@ -37,7 +37,7 @@ class GumbelVectorQuantizer(nn.Module):
             weight_proj_factor: this is used only if weight_proj_depth is > 1. scales the inner dimensionality of
                                 projections by this factor
         """
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         super().__init__()
 
         self.groups = groups
@@ -85,13 +85,13 @@ class GumbelVectorQuantizer(nn.Module):
         self.codebook_indices = None
 
     def set_num_updates(self, num_updates):
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         self.curr_temp = max(
             self.max_temp * self.temp_decay**num_updates, self.min_temp
         )
 
     def get_codebook_indices(self):
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         if self.codebook_indices is None:
             from itertools import product
 
@@ -111,7 +111,7 @@ class GumbelVectorQuantizer(nn.Module):
         return self.codebook_indices
 
     def codebook(self):
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         indices = self.get_codebook_indices()
         return (
             self.vars.squeeze(0)
@@ -120,7 +120,7 @@ class GumbelVectorQuantizer(nn.Module):
         )
 
     def sample_from_codebook(self, b, n):
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         indices = self.get_codebook_indices()
         indices = indices.view(-1, self.groups)
         cb_size = indices.size(0)
@@ -134,7 +134,7 @@ class GumbelVectorQuantizer(nn.Module):
         return z
 
     def to_codebook_index(self, indices):
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         res = indices.new_full(indices.shape[:-1], 0)
         for i in range(self.groups):
             exponent = self.groups - i - 1
@@ -142,12 +142,12 @@ class GumbelVectorQuantizer(nn.Module):
         return res
 
     def forward_idx(self, x):
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         res = self.forward(x, produce_targets=True)
         return res["x"], res["targets"]
 
     def forward(self, x, produce_targets=False):
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         result = {"num_vars": self.num_vars * self.groups}
 
         if not self.time_first:
@@ -155,7 +155,7 @@ class GumbelVectorQuantizer(nn.Module):
 
         bsz, tsz, fsz = x.shape
         x = x.reshape(-1, fsz)
-        x = self.weight_proj(x) # from z to l
+        x = self.weight_proj(x)
         x = x.view(bsz * tsz * self.groups, -1)
 
         _, k = x.max(-1)
@@ -177,11 +177,11 @@ class GumbelVectorQuantizer(nn.Module):
         ).sum()
 
         result["temp"] = self.curr_temp
-
+        import ipdb; ipdb.set_trace()
         if self.training:
-            x = F.gumbel_softmax(x.float(), tau=self.curr_temp, hard=True).type_as(x) # from l_g,v to p_g,v (one-hot since hard=True)
+            x = F.gumbel_softmax(x.float(), tau=self.curr_temp, hard=True).type_as(x)
         else:
-            x = hard_x # for valid/test, no gumbel_softmax is required. this is alike: i=argmax_j {p_g,j}, j=1, 2, ..., V -> codeword i
+            x = hard_x
 
         x = x.view(bsz * tsz, -1)
 

@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Wav2Vec2AsrConfig(FairseqDataclass):
+    #import ipdb; ipdb.set_trace()
     w2v_path: str = field(
         default=MISSING, metadata={"help": "path to wav2vec 2.0 model"}
     )
@@ -185,6 +186,7 @@ class Wav2Vec2AsrConfig(FairseqDataclass):
 
 @dataclass
 class Wav2Vec2CtcConfig(Wav2Vec2AsrConfig):
+    #import ipdb; ipdb.set_trace()
     blank_weight: float = 0
     blank_mode: str = "add"
 
@@ -192,6 +194,7 @@ class Wav2Vec2CtcConfig(Wav2Vec2AsrConfig):
 @register_model("wav2vec_ctc", dataclass=Wav2Vec2CtcConfig)
 class Wav2VecCtc(BaseFairseqModel):
     def __init__(self, cfg: Wav2Vec2CtcConfig, w2v_encoder: BaseFairseqModel):
+        #import ipdb; ipdb.set_trace()
         super().__init__()
         self.cfg = cfg
         self.w2v_encoder = w2v_encoder
@@ -199,16 +202,19 @@ class Wav2VecCtc(BaseFairseqModel):
         self.blank_mode = cfg.blank_mode
 
     def upgrade_state_dict_named(self, state_dict, name):
+        #import ipdb; ipdb.set_trace()
         super().upgrade_state_dict_named(state_dict, name)
         return state_dict
 
     @classmethod
     def build_model(cls, cfg: Wav2Vec2CtcConfig, task: FairseqTask):
         """Build a new model instance."""
+        #import ipdb; ipdb.set_trace()
         w2v_encoder = Wav2VecEncoder(cfg, len(task.target_dictionary))
         return cls(cfg, w2v_encoder)
 
     def get_logits(self, net_output, normalize=False):
+        #import ipdb; ipdb.set_trace()
         logits = net_output["encoder_out"]
         if self.blank_weight != 0:
             if self.blank_mode == "add":
@@ -233,6 +239,7 @@ class Wav2VecCtc(BaseFairseqModel):
 
     def get_normalized_probs(self, net_output, log_probs):
         """Get normalized probabilities (or log probs) from a net's output."""
+        #import ipdb; ipdb.set_trace()
 
         logits = self.get_logits(net_output)
 
@@ -242,12 +249,14 @@ class Wav2VecCtc(BaseFairseqModel):
             return utils.softmax(logits.float(), dim=-1)
 
     def forward(self, **kwargs):
+        #import ipdb; ipdb.set_trace()
         x = self.w2v_encoder(**kwargs)
         return x
 
 
 @dataclass
 class Wav2Vec2Seq2SeqConfig(Wav2Vec2AsrConfig):
+    #import ipdb; ipdb.set_trace()
     decoder_embed_dim: int = field(
         default=768, metadata={"help": "decoder embedding dimension"}
     )
@@ -301,10 +310,12 @@ class Wav2Vec2Seq2SeqConfig(Wav2Vec2AsrConfig):
 @register_model("wav2vec_seq2seq", dataclass=Wav2Vec2Seq2SeqConfig)
 class Wav2Vec2Seq2SeqModel(FairseqEncoderDecoderModel):
     def __init__(self, encoder, decoder):
+        #import ipdb; ipdb.set_trace()
         super().__init__(encoder, decoder)
 
     @classmethod
     def build_model(cls, cfg: Wav2Vec2Seq2SeqConfig, task: FairseqTask):
+        #import ipdb; ipdb.set_trace()
         """Build a new model instance."""
 
         assert (
@@ -328,24 +339,29 @@ class Wav2Vec2Seq2SeqModel(FairseqEncoderDecoderModel):
 
     @classmethod
     def build_encoder(cls, cfg: Wav2Vec2AsrConfig):
+        #import ipdb; ipdb.set_trace()
         return Wav2VecEncoder(cfg)
 
     @classmethod
     def build_decoder(cls, cfg: Wav2Vec2Seq2SeqConfig, tgt_dict, embed_tokens):
+        #import ipdb; ipdb.set_trace()
         return TransformerDecoder(cfg, tgt_dict, embed_tokens)
 
     def forward(self, **kwargs):
+        #import ipdb; ipdb.set_trace()
         encoder_out = self.encoder(**kwargs)
         decoder_out = self.decoder(encoder_out=encoder_out, **kwargs)
         return decoder_out
 
     def upgrade_state_dict_named(self, state_dict, name):
+        #import ipdb; ipdb.set_trace()
         super().upgrade_state_dict_named(state_dict, name)
         return state_dict
 
 
 class Wav2VecEncoder(FairseqEncoder):
     def __init__(self, cfg: Wav2Vec2AsrConfig, output_size=None):
+        #import ipdb; ipdb.set_trace()
         self.apply_mask = cfg.apply_mask
 
         arg_overrides = {
@@ -433,6 +449,7 @@ class Wav2VecEncoder(FairseqEncoder):
             self.proj = Linear(d, targ_d)
 
     def load_model_weights(self, state, model, cfg):
+        #import ipdb; ipdb.set_trace()
         if cfg.ddp_backend == "fully_sharded":
             from fairseq.distributed import FullyShardedDataParallel
 
@@ -466,11 +483,13 @@ class Wav2VecEncoder(FairseqEncoder):
             model.load_state_dict(state["model"], strict=True)
 
     def set_num_updates(self, num_updates):
+        #import ipdb; ipdb.set_trace()
         """Set the number of parameters updates."""
         super().set_num_updates(num_updates)
         self.num_updates = num_updates
 
     def forward(self, source, padding_mask, **kwargs):
+        #import ipdb; ipdb.set_trace()
 
         w2v_args = {
             "source": source,
@@ -501,12 +520,14 @@ class Wav2VecEncoder(FairseqEncoder):
         }
 
     def forward_torchscript(self, net_input):
+        #import ipdb; ipdb.set_trace()
         if torch.jit.is_scripting():
             return self.forward(net_input["source"], net_input["padding_mask"])
         else:
             return self.forward_non_torchscript(net_input)
 
     def reorder_encoder_out(self, encoder_out, new_order):
+        #import ipdb; ipdb.set_trace()
         if encoder_out["encoder_out"] is not None:
             encoder_out["encoder_out"] = encoder_out["encoder_out"].index_select(
                 1, new_order
@@ -519,9 +540,11 @@ class Wav2VecEncoder(FairseqEncoder):
 
     def max_positions(self):
         """Maximum input length supported by the encoder."""
+        #import ipdb; ipdb.set_trace()
         return None
 
     def upgrade_state_dict_named(self, state_dict, name):
+        #import ipdb; ipdb.set_trace()
         return state_dict
 
 
@@ -545,6 +568,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         embed_tokens,
         no_encoder_attn=False,
     ):
+        #import ipdb; ipdb.set_trace()
         super().__init__(dictionary)
 
         self.dropout = cfg.decoder_dropout
@@ -626,6 +650,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
                 - the decoder's output of shape `(batch, tgt_len, vocab)`
                 - a dictionary with any model-specific outputs
         """
+        #import ipdb; ipdb.set_trace()
         prev_output_tokens = prev_output_tokens.long()
         x, extra = self.extract_features(
             prev_output_tokens, encoder_out, incremental_state
@@ -644,6 +669,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
                 - the decoder's features of shape `(batch, tgt_len, embed_dim)`
                 - a dictionary with any model-specific outputs
         """
+        #import ipdb; ipdb.set_trace()
 
         # embed positions
         positions = (
@@ -703,6 +729,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         return x, {"attn": attn, "inner_states": inner_states}
 
     def output_layer(self, features, **kwargs):
+        #import ipdb; ipdb.set_trace()
         """Project features to the vocabulary size."""
         # project back to size of vocabulary
         if self.share_input_output_embed:
@@ -711,12 +738,14 @@ class TransformerDecoder(FairseqIncrementalDecoder):
             return F.linear(features, self.embed_out)
 
     def max_positions(self):
+        #import ipdb; ipdb.set_trace()
         """Maximum output length supported by the decoder."""
         if self.embed_positions is None:
             return self.max_target_positions
         return min(self.max_target_positions, self.embed_positions.max_positions)
 
     def buffered_future_mask(self, tensor):
+        #import ipdb; ipdb.set_trace()
         dim = tensor.size(0)
         if (
             not hasattr(self, "_future_mask")
@@ -730,10 +759,12 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         return self._future_mask[:dim, :dim]
 
     def upgrade_state_dict_named(self, state_dict, name):
+        #import ipdb; ipdb.set_trace()
         return state_dict
 
 
 def Embedding(num_embeddings, embedding_dim, padding_idx):
+    #import ipdb; ipdb.set_trace()
     m = nn.Embedding(num_embeddings, embedding_dim, padding_idx=padding_idx)
     nn.init.normal_(m.weight, mean=0, std=embedding_dim**-0.5)
     nn.init.constant_(m.weight[padding_idx], 0)
@@ -741,6 +772,7 @@ def Embedding(num_embeddings, embedding_dim, padding_idx):
 
 
 def Linear(in_features, out_features, bias=True):
+    #import ipdb; ipdb.set_trace()
     m = nn.Linear(in_features, out_features, bias)
     nn.init.xavier_uniform_(m.weight)
     if bias:

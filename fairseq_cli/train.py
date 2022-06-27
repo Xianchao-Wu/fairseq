@@ -44,7 +44,8 @@ from fairseq.trainer import Trainer
 def main(cfg: FairseqConfig) -> None:
     if isinstance(cfg, argparse.Namespace):
         cfg = convert_namespace_to_omegaconf(cfg)
-
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     utils.import_user_module(cfg.common)
     add_defaults(cfg)
 
@@ -94,6 +95,8 @@ def main(cfg: FairseqConfig) -> None:
             model = fsdp_wrap(task.build_model(cfg.model))
     else:
         model = task.build_model(cfg.model)
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     criterion = task.build_criterion(cfg.criterion)
     logger.info(model)
     logger.info("task: {}".format(task.__class__.__name__))
@@ -174,7 +177,8 @@ def main(cfg: FairseqConfig) -> None:
 
     max_epoch = cfg.optimization.max_epoch or math.inf
     lr = trainer.get_lr()
-
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     train_meter = meters.StopwatchMeter()
     train_meter.start()
     while epoch_itr.next_epoch_idx <= max_epoch:
@@ -185,15 +189,19 @@ def main(cfg: FairseqConfig) -> None:
                 f"(--stop-min-lr={cfg.optimization.stop_min_lr})"
             )
             break
-
+        if cfg.common.debug:
+            import ipdb; ipdb.set_trace()
         # train for one epoch
         valid_losses, should_stop = train(cfg, trainer, task, epoch_itr)
         if should_stop:
             break
-
+        if cfg.common.debug:
+            import ipdb; ipdb.set_trace()
         # only use first validation loss to update the learning rate
         lr = trainer.lr_step(epoch_itr.epoch, valid_losses[0])
 
+        if cfg.common.debug:
+            import ipdb; ipdb.set_trace()
         epoch_itr = trainer.get_train_iterator(
             epoch_itr.next_epoch_idx,
             # sharded data: get train iterator for next epoch
@@ -203,7 +211,8 @@ def main(cfg: FairseqConfig) -> None:
         )
     train_meter.stop()
     logger.info("done training in {:.1f} seconds".format(train_meter.sum))
-
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     # ioPath implementation to wait for all asynchronous file writes to complete.
     if cfg.checkpoint.write_checkpoints_asynchronously:
         logger.info(
@@ -220,7 +229,8 @@ def should_stop_early(cfg: DictConfig, valid_loss: float) -> bool:
         return False
     if cfg.checkpoint.patience <= 0:
         return False
-
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     def is_better(a, b):
         return a > b if cfg.checkpoint.maximize_best_checkpoint_metric else a < b
 
@@ -248,6 +258,8 @@ def train(
 ) -> Tuple[List[Optional[float]], bool]:
     """Train the model for one epoch and return validation losses."""
     # Initialize data iterator
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     itr = epoch_itr.next_epoch_itr(
         fix_batches_to_gpus=cfg.distributed_training.fix_batches_to_gpus,
         shuffle=(epoch_itr.next_epoch_idx > cfg.dataset.curriculum),
@@ -313,6 +325,8 @@ def train(
         with metrics.aggregate("train_inner"), torch.autograd.profiler.record_function(
             "train_step-%d" % i
         ):
+            if cfg.common.debug:
+                import ipdb; ipdb.set_trace()
             log_output = trainer.train_step(samples)
 
         if log_output is not None:  # not OOM, overflow, ...
@@ -326,6 +340,8 @@ def train(
                 # the end-of-epoch stats will still be preserved
                 metrics.reset_meters("train_inner")
 
+        if cfg.common.debug:
+            import ipdb; ipdb.set_trace()
         end_of_epoch = not itr.has_next()
         valid_losses, should_stop = validate_and_save(
             cfg, trainer, task, epoch_itr, valid_subsets, end_of_epoch
@@ -334,11 +350,14 @@ def train(
         if should_stop:
             break
 
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     # log end-of-epoch stats
     logger.info("end of epoch {} (average epoch stats below)".format(epoch_itr.epoch))
     stats = get_training_stats(metrics.get_smoothed_values("train"))
     progress.print(stats, tag="train", step=num_updates)
-
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     # reset epoch-level meters
     metrics.reset_meters("train")
     return valid_losses, should_stop
@@ -414,20 +433,25 @@ def validate_and_save(
         and not cfg.dataset.disable_validation
         and num_updates >= cfg.dataset.validate_after_updates
     )
-
     # Validate
     valid_losses = [None]
     if do_validate:
+        if cfg.common.debug:
+            import ipdb; ipdb.set_trace()
         valid_losses = validate(cfg, trainer, task, epoch_itr, valid_subsets)
 
     should_stop |= should_stop_early(cfg, valid_losses[0])
-
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     # Save checkpoint
     if do_save or should_stop:
+        if cfg.common.debug:
+            import ipdb; ipdb.set_trace()
         checkpoint_utils.save_checkpoint(
             cfg.checkpoint, trainer, epoch_itr, valid_losses[0]
         )
-
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     return valid_losses, should_stop
 
 
@@ -444,7 +468,8 @@ def validate(
     subsets: List[str],
 ) -> List[Optional[float]]:
     """Evaluate the model on the validation set(s) and return the losses."""
-
+    if cfg.common.debug:
+        import ipdb; ipdb.set_trace()
     if cfg.dataset.fixed_validation_seed is not None:
         # set fixed seed for every validation
         utils.set_torch_seed(cfg.dataset.fixed_validation_seed)

@@ -48,8 +48,8 @@ class Wav2vecCriterion(FairseqCriterion):
         Returns a tuple with three elements:
         1) the loss
         2) the sample size, which is used as the denominator for the gradient
-        3) logging outputs to display while training
-        """
+        3) logging outputs to display while training"""
+        #import ipdb; ipdb.set_trace()
         net_output = model(**sample["net_input"])
         logits = model.get_logits(net_output).float()
         target = model.get_targets(sample, net_output)
@@ -66,7 +66,7 @@ class Wav2vecCriterion(FairseqCriterion):
 
         reduction = "none" if ((not reduce) or self.xla) else "sum"
         if self.infonce:
-            loss = F.cross_entropy(logits, target, reduction=reduction)
+            loss = F.cross_entropy(logits, target, reduction=reduction) # contrasive loss, Equation (3) in https://arxiv.org/abs/2006.11477
         else:
             loss = F.binary_cross_entropy_with_logits(
                 logits, target.float(), weights, reduction=reduction
@@ -101,12 +101,12 @@ class Wav2vecCriterion(FairseqCriterion):
             assert len(extra_losses) == len(
                 self.loss_weights
             ), f"{len(extra_losses)}, {len(self.loss_weights)}"
-            for p, coef in zip(extra_losses, self.loss_weights):
+            for p, coef in zip(extra_losses, self.loss_weights): # L_d and feature_penalty_loss
                 if coef != 0 and p is not None:
                     p = coef * p.float() * sample_size
                     loss += p
                     losses.append(p)
-
+            # L_2=L_d=(GV-prob_perplexity)/GV=1-prob_perplexity/GV; L_3=feature_pen=features.pow(2).mean()
         logging_output = {
             "loss": loss.item() if (reduce and not self.xla) else loss.detach(),
             "ntokens": sample_size,
@@ -206,7 +206,7 @@ class Wav2vecCriterion(FairseqCriterion):
             "count",
         }
 
-        for k in logging_outputs[0]:
+        for k in logging_outputs[0]: # TODO this line is not 100% correct!!! you are assuming len(logging_outputs)=1
             if k not in builtin_keys:
                 val = sum(log.get(k, 0) for log in logging_outputs)
                 if k.startswith("loss"):

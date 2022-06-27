@@ -119,10 +119,12 @@ class AudioPretrainingTask(FairseqTask):
         Args:
             cfg (AudioPretrainingConfig): configuration of this task
         """
+        #import ipdb; ipdb.set_trace()
 
         return cls(cfg)
 
     def _get_mask_precompute_kwargs(self, cfg):
+        ##import ipdb; ipdb.set_trace()
         if self.cfg.precompute_mask_indices or self.cfg.tpu:
             assert (
                 cfg.inferred_w2v_config is not None
@@ -134,6 +136,7 @@ class AudioPretrainingTask(FairseqTask):
             return {}
 
     def load_dataset(self, split: str, task_cfg: FairseqDataclass = None, **kwargs):
+        #import ipdb; ipdb.set_trace()
         data_path = self.cfg.data
         task_cfg = task_cfg or self.cfg
 
@@ -183,17 +186,21 @@ class AudioPretrainingTask(FairseqTask):
 
     @property
     def source_dictionary(self):
+        ##import ipdb; ipdb.set_trace()
         return None
 
     @property
     def target_dictionary(self):
+        ##import ipdb; ipdb.set_trace()
         return None
 
     def max_positions(self):
         """Maximum input length supported by the encoder."""
+        ##import ipdb; ipdb.set_trace()
         return sys.maxsize, sys.maxsize
 
     def build_model(self, model_cfg: FairseqDataclass, from_checkpoint=False):
+        #import ipdb; ipdb.set_trace()
         model = super().build_model(model_cfg, from_checkpoint)
 
         actualized_cfg = getattr(model, "cfg", None)

@@ -65,7 +65,7 @@ class RawAudioDataset(FairseqDataset):
     def postprocess(self, feats, curr_sample_rate):
         if feats.dim() == 2:
             feats = feats.mean(-1)
-
+        #import ipdb; ipdb.set_trace()
         if curr_sample_rate != self.sample_rate:
             raise Exception(f"sample rate: {curr_sample_rate}, need {self.sample_rate}")
 
@@ -308,7 +308,7 @@ class FileAudioDataset(RawAudioDataset):
 
     def __getitem__(self, index):
         import soundfile as sf
-
+        #import ipdb; ipdb.set_trace()
         fn = self.fnames[index]
         fn = fn if isinstance(self.fnames, list) else fn.as_py()
         fn = self.text_compressor.decompress(fn)

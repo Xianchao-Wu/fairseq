@@ -24,9 +24,11 @@ logger = logging.getLogger(__name__)
 
 class LabelEncoder(object):
     def __init__(self, dictionary: Dictionary) -> None:
+        #import ipdb; ipdb.set_trace()
         self.dictionary = dictionary
 
     def __call__(self, label: str) -> List[str]:
+        #import ipdb; ipdb.set_trace()
         return self.dictionary.encode_line(
             label,
             append_eos=False,
@@ -36,6 +38,7 @@ class LabelEncoder(object):
 
 @dataclass
 class HubertPretrainingConfig(FairseqDataclass):
+    ##import ipdb; ipdb.set_trace()
     data: str = field(default=MISSING, metadata={"help": "path to data directory"})
     fine_tuning: bool = field(
         default=False, metadata={"help": "set to true if fine-tuning Hubert"}
@@ -111,6 +114,7 @@ class HubertPretrainingTask(FairseqTask):
         self,
         cfg: HubertPretrainingConfig,
     ) -> None:
+        #import ipdb; ipdb.set_trace()
         super().__init__(cfg)
 
         logger.info(f"current directory is {os.getcwd()}")
@@ -128,23 +132,28 @@ class HubertPretrainingTask(FairseqTask):
 
     @property
     def source_dictionary(self) -> Optional[Dictionary]:
+        #import ipdb; ipdb.set_trace()
         return None
 
     @property
     def target_dictionary(self) -> Optional[Dictionary]:
+        #import ipdb; ipdb.set_trace()
         return self.state.target_dictionary
 
     @property
     def dictionaries(self) -> List[Dictionary]:
+        #import ipdb; ipdb.set_trace()
         return self.state.dictionaries
 
     @classmethod
     def setup_task(
         cls, cfg: HubertPretrainingConfig, **kwargs
     ) -> "HubertPretrainingTask":
+        #import ipdb; ipdb.set_trace()
         return cls(cfg)
 
     def load_dictionaries(self):
+        #import ipdb; ipdb.set_trace()
         label_dir = self.cfg.data if self.cfg.label_dir is None else self.cfg.label_dir
         dictionaries = [
             Dictionary.load(f"{label_dir}/dict.{label}.txt")
@@ -153,11 +162,13 @@ class HubertPretrainingTask(FairseqTask):
         return dictionaries[0] if self.cfg.fine_tuning else dictionaries
 
     def get_label_dir(self) -> str:
+        #import ipdb; ipdb.set_trace()
         if self.cfg.label_dir is None:
             return self.cfg.data
         return self.cfg.label_dir
 
     def load_dataset(self, split: str, **kwargs) -> None:
+        #import ipdb; ipdb.set_trace()
         manifest = f"{self.cfg.data}/{split}.tsv"
         dicts = [self.target_dictionary] if self.cfg.fine_tuning else self.dictionaries
         pad_list = [dict.pad() for dict in dicts]
@@ -185,7 +196,9 @@ class HubertPretrainingTask(FairseqTask):
         )
 
     def max_positions(self) -> Tuple[int, int]:
+        #import ipdb; ipdb.set_trace()
         return (sys.maxsize, sys.maxsize)
 
     def filter_indices_by_size(self, indices: np.array, *args, **kwargs) -> np.array:
+        #import ipdb; ipdb.set_trace()
         return indices

@@ -152,6 +152,7 @@ class Trainer(object):
             self.quantizer.set_trainer(self)
 
         # get detailed cuda environment
+        #import ipdb; ipdb.set_trace()
         if self.cuda:
             self.cuda_env = utils.CudaEnvironment()
             if self.data_parallel_world_size > 1:
@@ -778,6 +779,7 @@ class Trainer(object):
     @metrics.aggregate("train")
     def train_step(self, samples, raise_oom=False):
         """Do forward, backward and parameter update."""
+        #import ipdb; ipdb.set_trace()
         self._set_seed()
         self.model.train()
         self.criterion.train()
@@ -925,7 +927,7 @@ class Trainer(object):
                 # TPU object. The assumption is that the gradient itself is also 0.
 
             with torch.autograd.profiler.record_function("clip-grads"):
-                # clip grads
+                #import ipdb; ipdb.set_trace() # clip grads
                 grad_norm = self.clip_grad_norm(self.cfg.optimization.clip_norm)
 
             # check that grad norms are consistent across workers
@@ -1061,7 +1063,7 @@ class Trainer(object):
                     metrics.log_scalar(
                         "gb_free", gb_free, priority=1500, round=1, weight=0
                     )
-
+                #import ipdb; ipdb.set_trace()
                 # log stats
                 logging_output = self._reduce_and_log_stats(
                     logging_outputs, sample_size, grad_norm
