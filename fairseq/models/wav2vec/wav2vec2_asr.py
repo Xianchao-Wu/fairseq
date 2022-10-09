@@ -651,6 +651,15 @@ class TransformerDecoder(FairseqIncrementalDecoder):
                 - a dictionary with any model-specific outputs
         """
         #import ipdb; ipdb.set_trace()
+        if type(prev_output_tokens) == list:
+            max_len = max((len(x) for x in prev_output_tokens))
+            tmp = torch.zeros(
+                [len(prev_output_tokens), max_len], device=prev_output_tokens[0].device
+            )
+            for (i, p) in enumerate(prev_output_tokens):
+                tmp[i, : len(p)] = p
+            prev_output_tokens = tmp
+
         prev_output_tokens = prev_output_tokens.long()
         x, extra = self.extract_features(
             prev_output_tokens, encoder_out, incremental_state

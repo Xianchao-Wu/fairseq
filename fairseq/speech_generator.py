@@ -77,7 +77,7 @@ class AutoRegressiveSpeechGenerator(SpeechGenerator):
                 target_lengths=cur_out_lens,
                 speaker=sample["speaker"],
                 **kwargs,
-            ) # NOTE
+            )
             cur_eos_prob = torch.sigmoid(cur_eos_out).squeeze(2)
             feat.append(cur_extra["feature_out"])
             attn.append(cur_extra["attn"])
@@ -218,7 +218,7 @@ class MultiDecoderSpeechGenerator(SpeechGenerator):
 
             text = "".join([self.tgt_dict_mt[c] for c in tmp])
             text = text.replace("_", " ")
-            text = text.replace("â–", " ")
+            text = text.replace("▁", " ")
             text = text.replace("<unk>", " ")
             text = text.replace("<s>", "")
             text = text.replace("</s>", "")
@@ -273,7 +273,7 @@ class MultiDecoderSpeechGenerator(SpeechGenerator):
                 target_lengths=cur_out_lens,
                 speaker=sample["speaker"],
                 **kwargs,
-            ) # NOTE
+            )
             cur_eos_prob = torch.sigmoid(cur_eos_out).squeeze(2)
             feat.append(cur_extra["feature_out"])
             attn.append(cur_extra["attn"])
