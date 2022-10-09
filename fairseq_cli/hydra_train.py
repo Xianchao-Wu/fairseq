@@ -9,12 +9,8 @@ import os
 
 import hydra
 import torch
-import random
-import numpy as np
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import OmegaConf, open_dict
-import sys
-sys.path.append('/workspace/asr/wav2vec/fairseq')
 
 from fairseq import distributed_utils, metrics
 from fairseq.dataclass.configs import FairseqConfig
@@ -28,12 +24,10 @@ logger = logging.getLogger("fairseq_cli.hydra_train")
 
 @hydra.main(config_path=os.path.join("..", "fairseq", "config"), config_name="config")
 def hydra_main(cfg: FairseqConfig) -> float:
-    #import ipdb; ipdb.set_trace()
     _hydra_main(cfg)
 
 
 def _hydra_main(cfg: FairseqConfig, **kwargs) -> float:
-    #import ipdb; ipdb.set_trace()
     add_defaults(cfg)
 
     if cfg.common.reset_logging:
@@ -57,7 +51,6 @@ def _hydra_main(cfg: FairseqConfig, **kwargs) -> float:
         if cfg.common.profile:
             with torch.cuda.profiler.profile():
                 with torch.autograd.profiler.emit_nvtx():
-                    #import ipdb; ipdb.set_trace()
                     distributed_utils.call_main(cfg, pre_main, **kwargs)
         else:
             distributed_utils.call_main(cfg, pre_main, **kwargs)
@@ -82,22 +75,6 @@ def _hydra_main(cfg: FairseqConfig, **kwargs) -> float:
 
 
 def cli_main():
-
-    debug = False
-    if debug:
-        # set seed for debug only: TODO
-        seed=666
-        #import numpy as np
-
-        np.random.seed(seed)
-        random.seed(seed)
-
-        torch.manual_seed(seed)
-
-        torch.cuda.manual_seed(seed)
-        torch.backends.cudnn.deterministic=True
-
-
     try:
         from hydra._internal.utils import get_args
 
@@ -106,13 +83,10 @@ def cli_main():
         logger.warning("Failed to get config name from hydra args")
         cfg_name = "config"
 
-    #import ipdb; ipdb.set_trace()
     hydra_init(cfg_name)
-
-    #import ipdb; ipdb.set_trace()
     hydra_main()
 
 
 if __name__ == "__main__":
-    __spec__ = None
     cli_main()
+

@@ -52,27 +52,36 @@ cp $source_dir/dict* $tgt_dir
 
 setopt shwordsplit
 
+# NOTE 1
 for split in $all_splits; do
-  python $FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/wav2vec_extract_features.py $source_dir --split $split \
+  python -m ipdb $FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/wav2vec_extract_features.py $source_dir --split $split \
   --save-dir $tgt_dir --checkpoint $model --layer $layer
 done
 
+exit 0
+
+# NOTE 2
 python $FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/wav2vec_cluster_faiss.py $tgt_dir/${train_split}.tsv \
 --checkpoint $model --save-dir $tgt_dir -f "CLUS128" --sample-pct 1.0
 
+# NOTE 3
 for split in $all_splits; do
   python $FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/wav2vec_apply_cluster_faiss.py $tgt_dir \
   --checkpoint $model --path $tgt_dir/CLUS128 --split $split
 done
 
+# NOTE 4
 python $FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/pca.py $tgt_dir/${train_split}.npy --output $tgt_dir/pca --dim $dim
 
 for split in $all_splits; do
+  # NOTE 5
   python $FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/apply_pca.py $tgt_dir --split $split --save-dir $tgt_dir/precompute_pca$dim --pca-path $tgt_dir/pca/${dim}_pca --batch-size 1048000
 
+  # NOTE 6
   python $FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/merge_clusters.py $tgt_dir/precompute_pca$dim --cluster-dir $tgt_dir/CLUS128 \
   --split $split --save-dir $tgt_dir/precompute_pca${dim}_cls128_mean --pooling mean
-
+  
+  # NOTE 7
   python $FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/mean_pool.py $tgt_dir/precompute_pca${dim}_cls128_mean \
   --save-dir $tgt_dir/precompute_pca${dim}_cls128_mean_pooled --split $split
 done

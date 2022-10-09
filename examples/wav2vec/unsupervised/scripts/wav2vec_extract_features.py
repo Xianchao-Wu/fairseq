@@ -35,6 +35,7 @@ def get_parser():
 
 class Wav2VecFeatureReader(object):
     def __init__(self, cp_file, layer):
+        import ipdb; ipdb.set_trace()
         model, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task(
             [cp_file]
         )
@@ -69,7 +70,7 @@ class Wav2VecFeatureReader(object):
 def get_iterator(args):
     with open(osp.join(args.data, args.split) + ".tsv", "r") as fp:
         lines = fp.read().split("\n")
-        root = lines.pop(0).strip()
+        root = lines.pop(0).strip() # root path, e.g., '/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/vads'
         files = [osp.join(root, line.split("\t")[0]) for line in lines if len(line) > 0]
 
         num = len(files)
@@ -88,7 +89,7 @@ def main():
     args = parser.parse_args()
 
     os.makedirs(args.save_dir, exist_ok=True)
-
+    # dest = 目标路径，e.g., '/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prep/train' 
     def create_files(dest):
         copyfile(osp.join(args.data, args.split) + ".tsv", dest + ".tsv")
         if osp.exists(osp.join(args.data, args.split) + ".wrd"):
@@ -99,7 +100,7 @@ def main():
         if osp.exists(dest + ".npy"):
             os.remove(dest + ".npy")
         npaa = NpyAppendArray(dest + ".npy")
-        return npaa
+        return npaa # <npy_append_array.npy_append_array.NpyAppendArray object at 0x7feb238dc9d0>
 
     save_path = osp.join(args.save_dir, args.split)
     npaa = create_files(save_path)

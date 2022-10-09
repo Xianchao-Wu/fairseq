@@ -313,7 +313,7 @@ def load_checkpoint_to_cpu(path, arg_overrides=None, load_on_all_ranks=False):
 
     with open(local_path, "rb") as f:
         state = torch.load(f, map_location=torch.device("cpu"))
-
+        # dict_keys(['args', 'model', 'optimizer_history', 'extra_state', 'last_optimizer_state'])
     if "args" in state and state["args"] is not None and arg_overrides is not None:
         args = state["args"]
         for arg_name, arg_val in arg_overrides.items():
@@ -323,15 +323,27 @@ def load_checkpoint_to_cpu(path, arg_overrides=None, load_on_all_ranks=False):
 
         # hack to be able to set Namespace in dict config. this should be removed when we update to newer
         # omegaconf version that supports object flags, or when we migrate all existing models
+        from omegaconf import __version__ as oc_version
         from omegaconf import _utils
 
-        old_primitive = _utils.is_primitive_type
-        _utils.is_primitive_type = lambda _: True
+        #old_primitive = _utils.is_primitive_type
+        #_utils.is_primitive_type = lambda _: True
 
-        state["cfg"] = OmegaConf.create(state["cfg"])
+        #state["cfg"] = OmegaConf.create(state["cfg"])
 
-        _utils.is_primitive_type = old_primitive
-        OmegaConf.set_struct(state["cfg"], True)
+        #_utils.is_primitive_type = old_primitive
+        #OmegaConf.set_struct(state["cfg"], True)
+
+        if oc_version < "2.2":
+            old_primitive = _utils.is_primitive_type
+            _utils.is_primitive_type = lambda _: True
+
+            state["cfg"] = OmegaConf.create(state["cfg"])
+
+            _utils.is_primitive_type = old_primitive
+            OmegaConf.set_struct(state["cfg"], True)
+        else:
+            state["cfg"] = OmegaConf.create(state["cfg"], flags={"allow_objects": True})
 
         if arg_overrides is not None:
             overwrite_args_by_name(state["cfg"], arg_overrides)
@@ -633,7 +645,7 @@ def _upgrade_state_dict(state):
             state["args"].dataset_impl = "raw"
         elif getattr(state["args"], "lazy_load", False):
             state["args"].dataset_impl = "lazy"
-        # epochs start at 1
+        # epochs start at 1 -> 54 (/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/wav2vec_small_100h.pt) NOTE
         if state["extra_state"]["train_iterator"] is not None:
             state["extra_state"]["train_iterator"]["epoch"] = max(
                 state["extra_state"]["train_iterator"].get("epoch", 1), 1
@@ -641,7 +653,7 @@ def _upgrade_state_dict(state):
         # --remove-bpe ==> --postprocess
         if hasattr(state["args"], "remove_bpe"):
             state["args"].post_process = state["args"].remove_bpe
-        # --min-lr ==> --stop-min-lr
+        # --min-lr ==> --stop-min-lr NOTE state['args'].min_lr=-1
         if hasattr(state["args"], "min_lr"):
             state["args"].stop_min_lr = state["args"].min_lr
             del state["args"].min_lr
@@ -674,7 +686,7 @@ def _upgrade_state_dict(state):
         ):
             state["args"].data = state["args"].data[0]
 
-        state["cfg"] = convert_namespace_to_omegaconf(state["args"])
+        state["cfg"] = convert_namespace_to_omegaconf(state["args"]) # NOTE
 
     if "cfg" in state and state["cfg"] is not None:
         cfg = state["cfg"]

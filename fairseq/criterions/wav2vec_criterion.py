@@ -48,7 +48,8 @@ class Wav2vecCriterion(FairseqCriterion):
         Returns a tuple with three elements:
         1) the loss
         2) the sample size, which is used as the denominator for the gradient
-        3) logging outputs to display while training"""
+        3) logging outputs to display while training
+        """
         #import ipdb; ipdb.set_trace()
         net_output = model(**sample["net_input"])
         logits = model.get_logits(net_output).float()
