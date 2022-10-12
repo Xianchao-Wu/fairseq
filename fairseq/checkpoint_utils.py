@@ -487,6 +487,7 @@ def load_model_ensemble_and_task(
                     and "num_updates" in state["optimizer_history"][-1]
                 ):
                     model.set_num_updates(state["optimizer_history"][-1]["num_updates"])
+                #import ipdb; ipdb.set_trace()
                 model.load_state_dict(
                     state["model"], strict=strict, model_cfg=cfg.model
                 )
@@ -685,7 +686,9 @@ def _upgrade_state_dict(state):
             and len(state["args"].data) > 0
         ):
             state["args"].data = state["args"].data[0]
-
+        
+        # TODO
+        #state['args'] = temp_proc(state['args'])
         state["cfg"] = convert_namespace_to_omegaconf(state["args"]) # NOTE
 
     if "cfg" in state and state["cfg"] is not None:

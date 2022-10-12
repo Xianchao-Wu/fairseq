@@ -210,7 +210,10 @@ class Wav2VecCtc(BaseFairseqModel):
     def build_model(cls, cfg: Wav2Vec2CtcConfig, task: FairseqTask):
         """Build a new model instance."""
         #import ipdb; ipdb.set_trace()
-        w2v_encoder = Wav2VecEncoder(cfg, len(task.target_dictionary))
+        # TODO NOTE the pretrained checkpoint used "out_size=768"
+        out_size = len(task.target_dictionary) if task is not None and task.target_dictionary is not None else 32 #None
+        #w2v_encoder = Wav2VecEncoder(cfg, len(task.target_dictionary))
+        w2v_encoder = Wav2VecEncoder(cfg, out_size)
         return cls(cfg, w2v_encoder)
 
     def get_logits(self, net_output, normalize=False):
@@ -511,7 +514,7 @@ class Wav2VecEncoder(FairseqEncoder):
         x = self.final_dropout(x)
 
         if self.proj:
-            x = self.proj(x)
+            x = self.proj(x) # e.g., [169, 1, 768] to [169, 1, 32]
 
         return {
             "encoder_out": x,  # T x B x C

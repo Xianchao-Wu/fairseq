@@ -18,7 +18,8 @@ ckpt="/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/wav2vec_s
 bash $script_dir/prepare_audio.sh \
 	$tsv_dir \
 	$out_dir \
-	$ckpt 512 14
+	$ckpt 512 11
+# TODO only has 12 layers, so "14" is not good...
 
 #zsh $script_dir/prepare_audio_v2.sh \
 #	$tsv_dir \

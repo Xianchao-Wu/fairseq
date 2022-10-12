@@ -16,7 +16,8 @@ import torch
 from collections import namedtuple
 
 import faiss
-
+import sys
+sys.path.append('/workspace/asr/wav2vec/fairseq')
 import fairseq
 import soundfile as sf
 
@@ -30,7 +31,7 @@ def get_parser():
     parser.add_argument('--save-dir', help='where to save the output', required=True)
     parser.add_argument('--checkpoint', type=str, help='checkpoint for wav2vec model (if using wav2vec features)', required=True)
     parser.add_argument('--sample-pct', '-r', type=float, help='percentage of timesteps to sample', default=0)
-    parser.add_argument('--layer', '-l', type=int, help='which layer to read', default=14)
+    parser.add_argument('--layer', '-l', type=int, help='which layer to read', default=11) # NOTE default was 14, but small.ckpt only has 12 layers...
     parser.add_argument('--faiss-specs', '-f', type=str,
                         help='faiss index specs; separated by space '
                              'format is: PCAx_NORM_CLUSx_SPHERICAL -> '
@@ -73,13 +74,16 @@ def parse_faiss_specs(specs_str):
 
 class Wav2VecFeatureReader(object):
     def __init__(self, cp_file, layer):
-        state = fairseq.checkpoint_utils.load_checkpoint_to_cpu(cp_file)
-
-        self.layer = layer
+        state = fairseq.checkpoint_utils.load_checkpoint_to_cpu(cp_file) # NOTE 读取checkpoint!
+        # state.keys=dict_keys(['args', 'model', 'optimizer_history', 'extra_state', 'last_optimizer_state', 'cfg'])
+        self.layer = layer # 11
 
         if "cfg" in state:
-            w2v_args = state["cfg"]
-            task = fairseq.tasks.setup_task(w2v_args.task)
+            w2v_args = state["cfg"] # 一大坨配置信息。。。
+            # w2v_args.task=ipdb> p w2v_args.task
+            #{'_name': 'audio_pretraining', 'data': '/checkpoint/abaevski/data/speech/libri/100h/wav2vec/raw/', 'labels': 'ltr', 'binarized_dataset': False, 'sample_rate': 16000, 'normalize': False, 'enable_padding': False, 'max_sample_size': None, 'min_sample_size': None, 'num_batch_buckets': 0, 'precompute_mask_indices': False, 'inferred_w2v_config': None, 'tpu': True, 'text_compression_level': 'none'}
+
+            task = fairseq.tasks.setup_task(w2v_args.task) # <fairseq.tasks.audio_pretraining.AudioPretrainingTask object at 0x7fded5040340>
             model = task.build_model(w2v_args.model)
         else:
             w2v_args = state["args"]
@@ -102,25 +106,25 @@ class Wav2VecFeatureReader(object):
         with torch.no_grad():
             source = torch.from_numpy(x).view(1, -1).float().cuda()
             res = self.model(
-                source=source, mask=False, features_only=True, layer=self.layer
+                source=source, padding_mask=None, mask=False, features_only=True, layer=self.layer
             )
             return res["layer_results"][self.layer][0].squeeze(1)
 
 
 def get_iterator(args):
-    with open(args.data, "r") as fp:
+    with open(args.data, "r") as fp: # '/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prep/train.tsv'
         lines = fp.read().split("\n")
         root = lines.pop(0).strip()
         files = [osp.join(root, line.split("\t")[0]) for line in lines if len(line) > 0]
-
-        if getattr(args, "sample_pct", 0) > 0:
+        # files = ['/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/vads/test-clean-wav-debug/908-31957-0005.wav', ...]
+        if getattr(args, "sample_pct", 0) > 0: # 1.0
             files = random.sample(files, int(args.sample_pct * len(files)))
-        num = len(files)
+        num = len(files) # still 7
         reader = Wav2VecFeatureReader(args.checkpoint, args.layer)
-
+        # ('/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/wav2vec_small_100h.pt', 11)
         def iterate():
             for fname in files:
-                feats = reader.get_feats(fname)
+                feats = reader.get_feats(fname) # fname="'/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/vads/test-clean-wav-debug/908-31957-0005.wav'", feats.shape=torch.Size([169, 768]) NOTE not 32 anymore!
                 yield feats.cpu().numpy()
 
     return iterate, num
@@ -132,8 +136,8 @@ def main():
 
     faiss_specs = parse_faiss_specs(args.faiss_specs)
     print("Faiss Specs:", faiss_specs)
-
-    feat_path = osp.join(args.save_dir, "features")
+    # Faiss Specs: [faiss_spec(pca=0, norm=False, n_clus=128, sphere=False, spec_str='CLUS128')]
+    feat_path = osp.join(args.save_dir, "features") # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prep/features
     if osp.exists(feat_path + ".npy"):
         feats = np.load(feat_path + ".npy")
     else:
@@ -147,31 +151,31 @@ def main():
         del iterator
         del generator
 
-        feats = np.concatenate(feats)
+        feats = np.concatenate(feats) # out feats.shape=[2196, 768]
 
         print(feats.shape)
 
-        os.makedirs(args.save_dir, exist_ok=True)
+        os.makedirs(args.save_dir, exist_ok=True) # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prep
         # np.save(feat_path, feats)
 
         gc.collect()
         torch.cuda.empty_cache()
 
     reload = False
-    for spec in faiss_specs:
+    for spec in faiss_specs: # [faiss_spec(pca=0, norm=False, n_clus=128, sphere=False, spec_str='CLUS128')]
         print("Processing spec", spec)
 
-        if reload:
+        if reload: # false
             print("Reloading...")
             del feats
             gc.collect()
             feats = np.load(feat_path + ".npy")
 
-        save_path = osp.join(args.save_dir, spec.spec_str)
+        save_path = osp.join(args.save_dir, spec.spec_str) # '/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prep/CLUS128'
         os.makedirs(save_path, exist_ok=True)
-        d = feats.shape[-1]
-        x = feats
-        if spec.pca > 0:
+        d = feats.shape[-1] # d=768
+        x = feats # [2196, 768]
+        if spec.pca > 0: # = 0, not in
             print("Computing PCA")
             pca = faiss.PCAMatrix(d, spec.pca)
             pca.train(x)
@@ -183,24 +187,25 @@ def main():
             print("Applying PCA")
             x = pca.apply_py(x)
 
-        if spec.norm:
+        if spec.norm: # False, not in
             reload = spec.pca <= 0
             print("Normalizing")
             faiss.normalize_L2(x)
 
+        #import ipdb; ipdb.set_trace()
         print("Computing kmeans")
         kmeans = faiss.Kmeans(
-            d,
-            spec.n_clus,
+            d, # 768
+            spec.n_clus, # 128
             niter=50,
             verbose=True,
-            spherical=spec.sphere,
-            max_points_per_centroid=feats.shape[0],
+            spherical=spec.sphere, # False
+            max_points_per_centroid=feats.shape[0], # [2196, 768]
             gpu=True,
-            nredo=3,
-        )
-        kmeans.train(x)
-        np.save(osp.join(save_path, "centroids"), kmeans.centroids)
+            nredo=3, # num of re-do, run the clustering this number of times, and keep the best centroids (selected according to clustering objective)
+        ) # NOTE important! 
+        kmeans.train(x) # <faiss.Kmeans object at 0x7f8e2c65e790>, x.shape=[2196, 768]
+        np.save(osp.join(save_path, "centroids"), kmeans.centroids) # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prep/CLUS128/centroids.npy
         del kmeans
         del x
         gc.collect()
@@ -208,3 +213,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # inputs: /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prep/train.tsv 
+    # 这里是读取wav文件，然后基于wav2vec2的已有的checkpoint，来encode 这个wav，得到的是[frame.len, 768]，等读取了所有的wav文件，之后，把所有的features合并到一起，最后得到的是整体的[2196, 768] -> 然后，就可以继续k-means聚类了。
+    # 这是基于k-means，来构造128个中心点：
+    # outputs: /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prep/CLUS128/centroids.npy

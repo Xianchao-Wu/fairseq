@@ -405,6 +405,12 @@ def convert_namespace_to_omegaconf(args: Namespace) -> DictConfig:
 
     with initialize(config_path=config_path):
         try:
+            #import ipdb; ipdb.set_trace()
+            # TODO
+            # add "+" to elements from [279 to 585]
+            for i in range(279, 586):
+                overrides[i] = "+" + overrides[i]
+            #import ipdb; ipdb.set_trace()
             composed_cfg = compose("config", overrides=overrides, strict=False)
         except:
             logger.error("Error when composing. Overrides: " + str(overrides))
