@@ -40,7 +40,7 @@ class Wav2VecFeatureReader(object):
         #import ipdb; ipdb.set_trace()
         # TODO
         model, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task(
-            [cp_file]
+            [cp_file] # checkpoint file: '/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/wav2vec_small_100h.pt' 
         )
         model = model[0]
         model.eval()
@@ -97,7 +97,7 @@ def get_iterator(args):
         def iterate():
             for fname in files:
                 w2v_feats = reader.get_feats(fname)
-                yield w2v_feats # shape=[169, 32=out.dim after a 768-to-32 projection]
+                yield w2v_feats # shape=[169, 32=out.dim after a 768-to-32 projection], TODO
 
     return iterate, num # 返回的是，iterate=生成器函数, num=7=文件数量
 
@@ -161,4 +161,16 @@ if __name__ == "__main__":
     #     valid.npy
     #     valid.tsv - direct copy
 
+
+    ###
+    # this is for prepare_audio_v2.sh
+    # input files: /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads
+    #              train.tsv, valid.tsv
+
+    # output files: /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2
+    # output files: copied: train.tsv
+    #               train.lengths, train.npy
+
+    # output files: copied: valid.tsv
+    #               valid.lengths, valid.npy
 

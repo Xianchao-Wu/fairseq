@@ -47,8 +47,8 @@ def get_km_model(
 
 
 def load_feature_shard(feat_dir, split, nshard, rank, percent):
-    feat_path = f"{feat_dir}/{split}_{rank}_{nshard}.npy"
-    leng_path = f"{feat_dir}/{split}_{rank}_{nshard}.len"
+    feat_path = f"{feat_dir}/{split}_{rank}_{nshard}.npy" # NOTE, read, /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/train_0_1.npy
+    leng_path = f"{feat_dir}/{split}_{rank}_{nshard}.len" # NOTE, read, /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/train_0_1.len
     with open(leng_path, "r") as f:
         lengs = [int(line.rstrip()) for line in f]
         offsets = [0] + np.cumsum(lengs[:-1]).tolist()
@@ -80,7 +80,7 @@ def load_feature(feat_dir, split, nshard, seed, percent):
         ],
         axis=0,
     )
-    logging.info(f"loaded feature with dimension {feat.shape}")
+    logging.info(f"loaded feature with dimension {feat.shape}") # e.g., (4389, 39)
     return feat
 
 
@@ -101,7 +101,7 @@ def learn_kmeans(
     max_no_improvement,
 ):
     np.random.seed(seed)
-    feat = load_feature(feat_dir, split, nshard, seed, percent)
+    feat = load_feature(feat_dir, split, nshard, seed, percent) # (4389, 39)
     km_model = get_km_model(
         n_clusters,
         init,
@@ -113,10 +113,12 @@ def learn_kmeans(
         reassignment_ratio,
     )
     km_model.fit(feat)
-    joblib.dump(km_model, km_path)
+    joblib.dump(km_model, km_path) 
+    # e.g., km_model=MiniBatchKMeans(batch_size=10000, compute_labels=False, max_no_improvement=100, n_clusters=64, n_init=20, reassignment_ratio=0.0, verbose=1); 
+    # km_path = '/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/cls64' NOTE write to
 
-    inertia = -km_model.score(feat) / len(feat)
-    logger.info("total intertia: %.5f", inertia)
+    inertia = -km_model.score(feat) / len(feat) # 1010.2205513784461
+    logger.info("total intertia: %.5f", inertia) # 2022-10-13 13:23:59 | INFO | learn_kmeans | total intertia: 1010.22055
     logger.info("finished successfully")
 
 
@@ -143,4 +145,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logging.info(str(args))
 
+    #import ipdb; ipdb.set_trace()
     learn_kmeans(**vars(args))
+
+    # input
+    # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/train_0_1.npy
+    # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/train_0_1.len
+
+    # output
+    # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/cls64

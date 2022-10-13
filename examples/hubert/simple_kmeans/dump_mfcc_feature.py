@@ -43,20 +43,22 @@ class MfccFeatureReader(object):
                 waveform=x,
                 sample_frequency=self.sample_rate,
                 use_energy=False,
-            )  # (time, freq)
-            mfccs = mfccs.transpose(0, 1)  # (freq, time)
-            deltas = torchaudio.functional.compute_deltas(mfccs)
-            ddeltas = torchaudio.functional.compute_deltas(deltas)
-            concat = torch.cat([mfccs, deltas, ddeltas], dim=0)
-            concat = concat.transpose(0, 1).contiguous()  # (freq, time)
+            )  # (time, freq), e.g., (427, 13)
+            mfccs = mfccs.transpose(0, 1)  # (freq, time), e.g., (13, 427)
+            deltas = torchaudio.functional.compute_deltas(mfccs) # (13, 427)
+            ddeltas = torchaudio.functional.compute_deltas(deltas) # (13, 427)
+            concat = torch.cat([mfccs, deltas, ddeltas], dim=0) # (39, 427)
+            concat = concat.transpose(0, 1).contiguous()  # (freq, time) -> (427, 39)
             return concat
 
 
 def main(tsv_dir, split, nshard, rank, feat_dir, sample_rate):
-    reader = MfccFeatureReader(sample_rate)
-    generator, num = get_path_iterator(f"{tsv_dir}/{split}.tsv", nshard, rank)
+    reader = MfccFeatureReader(sample_rate) # sample_rate=16000, 
+    generator, num = get_path_iterator(f"{tsv_dir}/{split}.tsv", nshard, rank) # nshard=1, rank=0
     dump_feature(reader, generator, num, split, nshard, rank, feat_dir)
-
+    # NOTE read, /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/train.tsv
+    # NOTE write to: /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc
+    #                train_0_1.len, train_0_1.npy 
 
 if __name__ == "__main__":
     import argparse

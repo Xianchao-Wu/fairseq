@@ -24,7 +24,7 @@ logger = logging.getLogger("dump_km_label")
 
 class ApplyKmeans(object):
     def __init__(self, km_path):
-        self.km_model = joblib.load(km_path)
+        self.km_model = joblib.load(km_path) # NOTE read, /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/cls64
         self.C_np = self.km_model.cluster_centers_.transpose()
         self.Cnorm_np = (self.C_np ** 2).sum(0, keepdims=True)
 
@@ -52,8 +52,8 @@ class ApplyKmeans(object):
 
 
 def get_feat_iterator(feat_dir, split, nshard, rank):
-    feat_path = f"{feat_dir}/{split}_{rank}_{nshard}.npy"
-    leng_path = f"{feat_dir}/{split}_{rank}_{nshard}.len"
+    feat_path = f"{feat_dir}/{split}_{rank}_{nshard}.npy" # NOTE read /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/train_0_1.npy
+    leng_path = f"{feat_dir}/{split}_{rank}_{nshard}.len" # NOTE read /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/train_0_1.len
     with open(leng_path, "r") as f:
         lengs = [int(line.rstrip()) for line in f]
         offsets = [0] + np.cumsum(lengs[:-1]).tolist()
@@ -68,11 +68,17 @@ def get_feat_iterator(feat_dir, split, nshard, rank):
 
 
 def dump_label(feat_dir, split, km_path, nshard, rank, lab_dir):
-    apply_kmeans = ApplyKmeans(km_path)
+    # feat_dir='/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc'
+    # split='train', 
+    # km_path=/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/cls64
+    # nshard=1, rank=0
+    # lab_dir='/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/cls64_idx'
+
+    apply_kmeans = ApplyKmeans(km_path) # 初始化一个对象, ApplyKmeans
     generator, num = get_feat_iterator(feat_dir, split, nshard, rank)
     iterator = generator()
 
-    lab_path = f"{lab_dir}/{split}_{rank}_{nshard}.km"
+    lab_path = f"{lab_dir}/{split}_{rank}_{nshard}.km" # NOTE write to file, /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/cls64_idx/train_0_1.km
     os.makedirs(lab_dir, exist_ok=True)
     with open(lab_path, "w") as f:
         for feat in tqdm.tqdm(iterator, total=num):
@@ -94,5 +100,10 @@ if __name__ == "__main__":
     parser.add_argument("lab_dir")
     args = parser.parse_args()
     logging.info(str(args))
-
+    #import ipdb; ipdb.set_trace()
     dump_label(**vars(args))
+
+    # input: /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/cls64 (one file) 
+    # input: cls64, train_0_1.len, train_0_1.npy 
+
+    # output: /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prepv2/mfcc/cls64_idx/train_0_1.km

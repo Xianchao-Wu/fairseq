@@ -15,14 +15,18 @@ out_dir2="/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train
 
 ckpt="/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/wav2vec_small_100h.pt"
 
-bash $script_dir/prepare_audio.sh \
-	$tsv_dir \
-	$out_dir \
-	$ckpt 512 11
-# TODO only has 12 layers, so "14" is not good...
+isdone1=1
+if [[ $isdone1 -eq 0 ]]
+then
+    bash $script_dir/prepare_audio.sh \
+        $tsv_dir \
+        $out_dir \
+        $ckpt 512 11
+    # TODO only has 12 layers, so "14" is not good...
+fi
 
-#zsh $script_dir/prepare_audio_v2.sh \
-#	$tsv_dir \
-#	$out_dir2 \
-#	$ckpt 64 14
+bash $script_dir/prepare_audio_v2.sh \
+    $tsv_dir \
+    $out_dir2 \
+    $ckpt 64 11 
 
