@@ -83,7 +83,7 @@ def main(cfg: FairseqConfig) -> None:
                 "not installed: `pip install iopath`"
             )
             return
-
+    import ipdb; ipdb.set_trace()
     # Setup task, e.g., translation, language modeling, etc.
     task = tasks.setup_task(cfg.task)
 
@@ -144,10 +144,10 @@ def main(cfg: FairseqConfig) -> None:
         )
     else:
         quantizer = None
-
+    import ipdb; ipdb.set_trace()
     # Build trainer
     if cfg.common.model_parallel_size == 1:
-        trainer = Trainer(cfg, task, model, criterion, quantizer)
+        trainer = Trainer(cfg, task, model, criterion, quantizer) # NOTE
     else:
         trainer = MegatronTrainer(cfg, task, model, criterion)
     logger.info(
@@ -174,7 +174,7 @@ def main(cfg: FairseqConfig) -> None:
         import torch_xla.core.xla_model as xm
 
         xm.rendezvous("load_checkpoint")  # wait for all workers
-
+    import ipdb; ipdb.set_trace()
     max_epoch = cfg.optimization.max_epoch or math.inf
     lr = trainer.get_lr()
     if cfg.common.debug:
@@ -419,7 +419,7 @@ def validate_and_save(
             and num_updates >= cfg.dataset.validate_after_updates
         )
     )
-    do_validate = (
+    do_validate = ( # 决定是否进行validate
         (
             (not end_of_epoch and do_save)  # validate during mid-epoch saves
             or (end_of_epoch and epoch_itr.epoch % cfg.dataset.validate_interval == 0)
@@ -427,7 +427,7 @@ def validate_and_save(
             or (
                 cfg.dataset.validate_interval_updates > 0
                 and num_updates > 0
-                and num_updates % cfg.dataset.validate_interval_updates == 0
+                and num_updates % cfg.dataset.validate_interval_updates == 0 # e.g., num_updates/1000
             )
         )
         and not cfg.dataset.disable_validation

@@ -225,7 +225,6 @@ class FairseqTask(object):
     ):
         """
         Get an iterator that yields batches of data from the given dataset.
-
         Args:
             dataset (~fairseq.data.FairseqDataset): dataset to batch
             max_tokens (int, optional): max number of tokens in each batch
@@ -267,6 +266,7 @@ class FairseqTask(object):
             ~fairseq.iterators.EpochBatchIterator: a batched iterator over the
                 given dataset split
         """
+        import ipdb; ipdb.set_trace()
         can_reuse_epoch_itr = (
             not disable_iterator_cache
             and not update_epoch_batch_itr
@@ -321,7 +321,7 @@ class FairseqTask(object):
 
         if can_reuse_epoch_itr:
             self.dataset_to_epoch_iter[dataset] = epoch_iter
-
+        import ipdb; ipdb.set_trace()
         return epoch_iter
 
     def build_model(self, cfg: FairseqDataclass, from_checkpoint=False):
@@ -336,7 +336,7 @@ class FairseqTask(object):
             a :class:`~fairseq.models.BaseFairseqModel` instance
         """
         from fairseq import models, quantization_utils
-
+        #import ipdb; ipdb.set_trace()
         model = models.build_model(cfg, self, from_checkpoint)
         model = quantization_utils.quantize_model_scalar(model, cfg)
         return model
@@ -510,27 +510,27 @@ class FairseqTask(object):
                   gradient
                 - logging outputs to display while training
         """
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         model.train()
         model.set_num_updates(update_num)
         with torch.autograd.profiler.record_function("forward"):
             with torch.cuda.amp.autocast(enabled=(isinstance(optimizer, AMPOptimizer))):
                 loss, sample_size, logging_output = criterion(model, sample)
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         if ignore_grad:
             loss *= 0
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         with torch.autograd.profiler.record_function("backward"):
             optimizer.backward(loss)
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         return loss, sample_size, logging_output
 
     def valid_step(self, sample, model, criterion):
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         model.eval()
         with torch.no_grad():
             loss, sample_size, logging_output = criterion(model, sample)
-        #import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         return loss, sample_size, logging_output
 
     def optimizer_step(self, optimizer, model, update_num):

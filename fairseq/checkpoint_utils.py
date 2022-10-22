@@ -192,7 +192,7 @@ def load_checkpoint(cfg: CheckpointConfig, trainer, **passthrough_args):
     *passthrough_args* will be passed through to
     ``trainer.get_train_iterator``.
     """
-
+    import ipdb; ipdb.set_trace()
     reset_optimizer = cfg.reset_optimizer
     reset_lr_scheduler = cfg.reset_lr_scheduler
     optimizer_overrides = ast.literal_eval(cfg.optimizer_overrides)
@@ -252,7 +252,7 @@ def load_checkpoint(cfg: CheckpointConfig, trainer, **passthrough_args):
         optimizer_overrides,
         reset_meters=reset_meters,
     )
-
+    import ipdb; ipdb.set_trace()
     if (
         extra_state is not None
         and "best" in extra_state
@@ -269,10 +269,10 @@ def load_checkpoint(cfg: CheckpointConfig, trainer, **passthrough_args):
         )
         epoch_itr.load_state_dict(itr_state)
     else:
-        epoch_itr = trainer.get_train_iterator(
+        epoch_itr = trainer.get_train_iterator( # NOTE important here
             epoch=1, load_dataset=True, **passthrough_args
         )
-
+    import ipdb; ipdb.set_trace()
     trainer.lr_step(epoch_itr.epoch)
 
     return extra_state, epoch_itr

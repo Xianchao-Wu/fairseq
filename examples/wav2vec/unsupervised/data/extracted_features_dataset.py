@@ -31,7 +31,7 @@ class ExtractedFeaturesDataset(FairseqDataset):
         aux_target_postfix=None,
     ):
         super().__init__()
-
+        import ipdb; ipdb.set_trace()
         self.min_length = min_length
         self.max_length = max_length
         self.shuffle = shuffle
@@ -48,7 +48,7 @@ class ExtractedFeaturesDataset(FairseqDataset):
 
         path = os.path.join(path, split)
         data_path = path
-        self.data = np.load(data_path + ".npy", mmap_mode="r")
+        self.data = np.load(data_path + ".npy", mmap_mode="r") # NOTE e.g., '/workspace/asr/timit_out_w2vu/unmatched/feat/precompute_pca16_cls128_mean_pooled/valid.npy' read file
 
         offset = 0
         skipped = 0
@@ -56,7 +56,7 @@ class ExtractedFeaturesDataset(FairseqDataset):
         if not os.path.exists(path + f".{labels}"):
             labels = None
 
-        with open(data_path + ".lengths", "r") as len_f, open(
+        with open(data_path + ".lengths", "r") as len_f, open( # NOTE e.g., /workspace/asr/timit_out_w2vu/unmatched/feat/precompute_pca16_cls128_mean_pooled/valid.lengths
             path + f".{labels}", "r"
         ) if labels is not None else contextlib.ExitStack() as lbl_f:
             for line in len_f:

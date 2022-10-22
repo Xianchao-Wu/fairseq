@@ -323,7 +323,7 @@ def batch_by_size(
         raise ValueError(
             "Please build (or rebuild) Cython components with `python setup.py build_ext --inplace`."
         )
-
+    import ipdb; ipdb.set_trace()
     # added int() to avoid TypeError: an integer is required
     max_tokens = int(max_tokens) if max_tokens is not None else -1
     max_sentences = max_sentences if max_sentences is not None else -1
@@ -337,7 +337,7 @@ def batch_by_size(
 
     if fixed_shapes is None:
         if num_tokens_vec is None:
-            return batch_by_size_fn(
+            return batch_by_size_fn( # NOTE not a pythn method, cpp method...
                 indices,
                 num_tokens_fn,
                 max_tokens,

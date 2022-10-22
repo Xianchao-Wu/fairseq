@@ -101,6 +101,7 @@ class UnpairedAudioText(FairseqTask):
         source_dictionary=None,
         target_dictionary=None,
     ):
+        import ipdb; ipdb.set_trace()
         super().__init__(cfg)
 
         self._target_dictionary = target_dictionary
@@ -156,7 +157,7 @@ class UnpairedAudioText(FairseqTask):
         Args:
             cfg (AudioPretrainingConfig): configuration of this task
         """
-
+        import ipdb; ipdb.set_trace()
         dict_path = os.path.join(cfg.text_data, "dict.txt")
         if os.path.exists(dict_path):
             target_dictionary = Dictionary.load(dict_path)
@@ -310,8 +311,8 @@ class UnpairedAudioText(FairseqTask):
             sort_by_length=task_cfg.sort_by_length,
             aux_target_postfix=task_cfg.aux_target_postfix,
         )
-
-        logger.info(f"split {split} has unpaired text? {has_unpaired_text}")
+        import ipdb; ipdb.set_trace()
+        logger.info(f"split {split} has unpaired text? {has_unpaired_text}") # split valid has unpaired text? False; split train has unpaired text? True
         if has_unpaired_text:
             text_dataset = data_utils.load_indexed_dataset(
                 os.path.join(self.cfg.text_data, split), self.target_dictionary

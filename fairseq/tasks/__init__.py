@@ -22,6 +22,7 @@ TASK_CLASS_NAMES = set()
 
 
 def setup_task(cfg: FairseqDataclass, **kwargs):
+    #import ipdb; ipdb.set_trace()
     task = None
     task_name = getattr(cfg, "task", None)
 
@@ -32,7 +33,7 @@ def setup_task(cfg: FairseqDataclass, **kwargs):
             dc = TASK_DATACLASS_REGISTRY[task_name]
             cfg = dc.from_namespace(cfg)
     else:
-        task_name = getattr(cfg, "_name", None)
+        task_name = getattr(cfg, "_name", None) # NOTE 'unpaired_audio_text'
 
         if task_name and task_name in TASK_DATACLASS_REGISTRY:
             dc = TASK_DATACLASS_REGISTRY[task_name]

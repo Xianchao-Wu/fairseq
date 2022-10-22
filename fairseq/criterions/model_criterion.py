@@ -49,8 +49,8 @@ class ModelCriterion(FairseqCriterion):
         self.log_keys = log_keys
 
     def forward(self, model, sample, reduce=True):
-        net_output = model(**sample["net_input"])
-
+        net_output = model(**sample["net_input"]) # NOTE
+        import ipdb; ipdb.set_trace()
         scaled_losses = {}
 
         if hasattr(model, "get_losses"):
@@ -106,7 +106,7 @@ class ModelCriterion(FairseqCriterion):
         if "logs" in net_output:
             for lgw in net_output["logs"]:
                 logging_output[lgw] = net_output["logs"][lgw]
-
+        import ipdb; ipdb.set_trace()
         return loss, sample_size, logging_output
 
     @staticmethod

@@ -54,7 +54,7 @@ __all__ = [
 
 
 def build_model(cfg: FairseqDataclass, task, from_checkpoint=False):
-
+    #import ipdb; ipdb.set_trace()
     model = None
     model_type = getattr(cfg, "_name", None) or getattr(cfg, "arch", None)
 
@@ -74,7 +74,7 @@ def build_model(cfg: FairseqDataclass, task, from_checkpoint=False):
             )
 
     if model_type in ARCH_MODEL_REGISTRY:
-        # case 1: legacy models
+        # case 1: legacy models - 遗产, 老模型
         model = ARCH_MODEL_REGISTRY[model_type]
     elif model_type in MODEL_DATACLASS_REGISTRY:
         # case 2: config-driven models

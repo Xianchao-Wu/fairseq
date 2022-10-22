@@ -28,6 +28,7 @@ def hydra_main(cfg: FairseqConfig) -> float:
 
 
 def _hydra_main(cfg: FairseqConfig, **kwargs) -> float:
+    import ipdb; ipdb.set_trace()
     add_defaults(cfg)
 
     if cfg.common.reset_logging:
@@ -35,7 +36,7 @@ def _hydra_main(cfg: FairseqConfig, **kwargs) -> float:
     else:
         # check if directly called or called through hydra_main
         if HydraConfig.initialized():
-            with open_dict(cfg):
+            with open_dict(cfg): # key_num = 20
                 # make hydra logging work with ddp (see # see https://github.com/facebookresearch/hydra/issues/1126)
                 cfg.job_logging_cfg = OmegaConf.to_container(
                     HydraConfig.get().job_logging, resolve=True
@@ -53,7 +54,7 @@ def _hydra_main(cfg: FairseqConfig, **kwargs) -> float:
                 with torch.autograd.profiler.emit_nvtx():
                     distributed_utils.call_main(cfg, pre_main, **kwargs)
         else:
-            distributed_utils.call_main(cfg, pre_main, **kwargs)
+            distributed_utils.call_main(cfg, pre_main, **kwargs) # NOTE here
     except BaseException as e:
         if not cfg.common.suppress_crashes:
             raise

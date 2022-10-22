@@ -44,7 +44,7 @@ class Trainer(object):
     """
 
     def __init__(self, cfg: FairseqConfig, task, model, criterion, quantizer=None):
-
+        import ipdb; ipdb.set_trace()
         if isinstance(cfg, Namespace):
             logger.warning(
                 "argparse.Namespace configuration is deprecated! Automatically converting to OmegaConf"
@@ -283,6 +283,7 @@ class Trainer(object):
 
     @property
     def lr_scheduler(self):
+        import ipdb; ipdb.set_trace()
         if self._lr_scheduler is None:
             self._build_optimizer()  # this will initialize self._lr_scheduler
         return self._lr_scheduler
@@ -327,7 +328,8 @@ class Trainer(object):
                 logger.info(
                     "NOTE: your device may support faster training with --fp16 or --amp"
                 )
-            self._optimizer = optim.build_optimizer(self.cfg.optimizer, params)
+            import ipdb; ipdb.set_trace()
+            self._optimizer = optim.build_optimizer(self.cfg.optimizer, params) # NOTE for 'generator' and for 'discriminator'
 
         if self.is_fsdp:
             assert (
@@ -358,7 +360,8 @@ class Trainer(object):
                 )
             else:
                 optim.shard_(self._optimizer, self.data_parallel_process_group)
-
+        
+        import ipdb; ipdb.set_trace()
         # We should initialize the learning rate scheduler immediately after
         # building the optimizer, so that the initial learning rate is set.
         self._lr_scheduler = lr_scheduler.build_lr_scheduler(
@@ -692,7 +695,7 @@ class Trainer(object):
                 data_selector=data_selector,
                 tpu=self.tpu,
             )
-        batch_iterator = self.task.get_batch_iterator(
+        batch_iterator = self.task.get_batch_iterator( # NOTE
             dataset=self.task.dataset(self.cfg.dataset.train_subset),
             max_tokens=self.cfg.dataset.max_tokens,
             max_sentences=self.cfg.dataset.batch_size,
@@ -717,7 +720,7 @@ class Trainer(object):
             update_epoch_batch_itr=self.cfg.dataset.update_epoch_batch_itr,
         )
         self.reset_dummy_batch(batch_iterator.first_batch)
-        return batch_iterator
+        return batch_iterator # NOTE
 
     def get_valid_iterator(
         self,
@@ -831,7 +834,7 @@ class Trainer(object):
                         ignore_grad=is_dummy_batch,
                         **extra_kwargs,
                     )
-                    del loss
+                    del loss # NOTE why delete loss?
 
                 logging_outputs.append(logging_output)
                 sample_size += sample_size_i

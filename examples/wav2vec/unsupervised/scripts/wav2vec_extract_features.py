@@ -76,8 +76,13 @@ class Wav2VecFeatureReader(object):
 
             #return m_res["x"].squeeze(0).cpu()
             # TODO
-            return m_res['encoder_out'].squeeze(1).cpu() # [169, 1, 32] to [169, 32]
-            # TODO, m_res['layer_results'][11=out.layer][0].shape = [169, 1, 768]
+            out_32 = False
+            if out_32:
+                return m_res['encoder_out'].squeeze(1).cpu() # [169, 1, 32] to [169, 32]
+            else:
+                # TODO, m_res['layer_results'][11=out.layer][0].shape = [169, 1, 768]
+                # this is output 768
+                return m_res['layer_results'][self.layer][0].squeeze(1).cpu()
 
 def get_iterator(args):
     with open(osp.join(args.data, args.split) + ".tsv", "r") as fp: 

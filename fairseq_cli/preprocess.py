@@ -15,6 +15,8 @@ import typing as tp
 from argparse import Namespace
 from itertools import zip_longest
 
+sys.path.append('/workspace/asr/wav2vec/fairseq')
+
 from fairseq import options, tasks, utils
 from fairseq.binarizer import (
     AlignmentDatasetBinarizer,
@@ -99,34 +101,34 @@ def _build_dictionary(
 
 
 def _make_binary_dataset(
-    vocab: Dictionary,
-    input_prefix: str,
-    output_prefix: str,
-    lang: tp.Optional[str],
-    num_workers: int,
-    args: Namespace,
+    vocab: Dictionary, # case 3, <fairseq.data.dictionary.Dictionary object at 0x7f7e14f78880>
+    input_prefix: str, # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/lm.phones.filtered.txt
+    output_prefix: str, # 'train'
+    lang: tp.Optional[str], # None
+    num_workers: int, # 1
+    args: Namespace, # 一大坨来自命令行的参数集合
 ):
-    logger.info("[{}] Dictionary: {} types".format(lang, len(vocab)))
+    logger.info("[{}] Dictionary: {} types".format(lang, len(vocab))) # case 3, 2022-10-14 16:20:14 | INFO | fairseq_cli.preprocess | [None] Dictionary: 44 types
 
     binarizer = VocabularyDatasetBinarizer(
         vocab,
         append_eos=True,
-    )
+    ) # <fairseq.binarizer.VocabularyDatasetBinarizer object at 0x7f7ceaae9fd0>
 
-    input_file = "{}{}".format(input_prefix, ("." + lang) if lang is not None else "")
-    full_output_prefix = dataset_dest_prefix(args, output_prefix, lang)
+    input_file = "{}{}".format(input_prefix, ("." + lang) if lang is not None else "") # NOTE read '/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/lm.phones.filtered.txt'
+    full_output_prefix = dataset_dest_prefix(args, output_prefix, lang) # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/train
 
     final_summary = FileBinarizer.multiprocess_dataset(
-        input_file,
-        args.dataset_impl,
-        binarizer,
-        full_output_prefix,
-        vocab_size=len(vocab),
-        num_workers=num_workers,
+        input_file, # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/lm.phones.filtered.txt
+        args.dataset_impl, # 'mmap'
+        binarizer, # <fairseq.binarizer.VocabularyDatasetBinarizer object at 0x7f7ceaae9fd0>
+        full_output_prefix, # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/train
+        vocab_size=len(vocab), # 44
+        num_workers=num_workers, # 1
     )
 
     logger.info(f"[{lang}] {input_file}: {final_summary} (by {vocab.unk_word})")
-
+    # 2022-10-14 16:22:38 | INFO | fairseq_cli.preprocess | [None] /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/lm.phones.filtered.txt: 879 sents, 43989 tokens, 0.0% replaced (by <unk>)
 
 def _make_binary_alignment_dataset(
     input_prefix: str, output_prefix: str, num_workers: int, args: Namespace
@@ -159,12 +161,12 @@ def _make_binary_alignment_dataset(
 
 
 def _make_dataset(
-    vocab: Dictionary,
-    input_prefix: str,
-    output_prefix: str,
-    lang: tp.Optional[str],
-    args: Namespace,
-    num_workers: int,
+    vocab: Dictionary, # <fairseq.data.dictionary.Dictionary object at 0x7f7e14f78880>
+    input_prefix: str, # case 3, /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/lm.phones.filtered.txt
+    output_prefix: str, # case 3, 'train'
+    lang: tp.Optional[str], # None
+    args: Namespace, # 命令行
+    num_workers: int, # 1
 ):
     if args.dataset_impl == "raw":
         # Copy original text file to destination folder
@@ -179,9 +181,9 @@ def _make_dataset(
             vocab, input_prefix, output_prefix, lang, num_workers, args
         )
 
-
+# lang=None, vocab=<fairseq.data.dictionary.Dictionary object at 0x7f7e14f78880>; args=命令行参数
 def _make_all(lang, vocab, args):
-    if args.trainpref:
+    if args.trainpref: # case 3, '/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/lm.phones.filtered.txt'
         _make_dataset(
             vocab, args.trainpref, "train", lang, args=args, num_workers=args.workers
         )
@@ -278,8 +280,8 @@ def main(args):
     # setup some basic things
     utils.import_user_module(args)
 
-    os.makedirs(args.destdir, exist_ok=True)
-
+    os.makedirs(args.destdir, exist_ok=True) # case 1: 
+    # case 2, 3: '/workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones'
     logger.addHandler(
         logging.FileHandler(
             filename=os.path.join(args.destdir, "preprocess.log"),
@@ -293,9 +295,9 @@ def main(args):
 
     # build dictionaries
 
-    target = not args.only_source
+    target = not args.only_source # False
 
-    if not args.srcdict and os.path.exists(_dict_path(args.source_lang, args.destdir)):
+    if not args.srcdict and os.path.exists(_dict_path(args.source_lang, args.destdir)): # 如果文件已经存在，就报异常
         raise FileExistsError(_dict_path(args.source_lang, args.destdir))
 
     if (
@@ -305,9 +307,9 @@ def main(args):
     ):
         raise FileExistsError(_dict_path(args.target_lang, args.destdir))
 
-    task = tasks.get_task(args.task)
+    task = tasks.get_task(args.task) # NOTE, default is [case 1,2,3] <class 'fairseq.tasks.translation.TranslationTask'> ...
 
-    if args.joined_dictionary:
+    if args.joined_dictionary: # not in
         assert (
             not args.srcdict or not args.tgtdict
         ), "cannot use both --srcdict and --tgtdict with --joined-dictionary"
@@ -331,20 +333,20 @@ def main(args):
             )
         tgt_dict = src_dict
     else:
-        if args.srcdict:
+        if args.srcdict: # not in (case1,2); case3: in NOTE read: /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/dict.phn.txt
             src_dict = task.load_dictionary(args.srcdict)
         else:
             assert (
-                args.trainpref
+                args.trainpref # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/lm.upper.lid.txt, NOTE read file
             ), "--trainpref must be set if --srcdict is not specified"
             src_dict = _build_dictionary(
-                [_train_path(args.source_lang, args.trainpref)],
+                [_train_path(args.source_lang, args.trainpref)], # NOTE read lm.upper.lid.txt file as input for building dict; NOTE case 2 read /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones.txt and build dict; 
                 task=task,
                 args=args,
                 src=True,
-            )
+            ) # <fairseq.data.dictionary.Dictionary object at 0x7f97741f19a0> TODO
 
-        if target:
+        if target: # False
             if args.tgtdict:
                 tgt_dict = task.load_dictionary(args.tgtdict)
             else:
@@ -362,11 +364,11 @@ def main(args):
 
     # save dictionaries
 
-    src_dict.save(_dict_path(args.source_lang, args.destdir))
+    src_dict.save(_dict_path(args.source_lang, args.destdir)) # /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/dict.txt NOTE, write to dict file (also with preprocess.log); NOTE case 2, write to /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/dict.txt (also with preprocess.log); NOTE case 3, /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones/dict.txt [dict.txt = dict.phn.txt now...]
     if target and tgt_dict is not None:
         tgt_dict.save(_dict_path(args.target_lang, args.destdir))
 
-    if args.dict_only:
+    if args.dict_only: # here! both for case1 and case2; not in for case 3
         return
 
     _make_all(args.source_lang, src_dict, args)
@@ -378,7 +380,7 @@ def main(args):
         _make_all_alignments(args)
 
     logger.info("Wrote preprocessed data to {}".format(args.destdir))
-
+    # 2022-10-14 16:23:23 | INFO | fairseq_cli.preprocess | Wrote preprocessed data to /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/txt/phones
     if args.alignfile:
         _align_files(args, src_dict=src_dict, tgt_dict=tgt_dict)
 

@@ -38,10 +38,11 @@ class RandomInputDataset(BaseWrapperDataset):
         return target_loc[k]
 
     def __getitem__(self, index):
-        item = self.dataset[index]
-        k, target_loc = self.get_target(item)
-        target_loc[k] = random.choice(self.random_input_dataset)
-        return item
+        #import ipdb; ipdb.set_trace() # NOTE check the details
+        item = self.dataset[index] # item['id']=1190, item['features'].shape=torch.Size([50, 16])
+        k, target_loc = self.get_target(item) # k='random_label', target_loc=item (a dict)
+        target_loc[k] = random.choice(self.random_input_dataset) # 随意选择一个phoneme sequence
+        return item # 'id', 'features', 'random_label'
 
     def collater(self, samples):
         collated = self.dataset.collater(samples)

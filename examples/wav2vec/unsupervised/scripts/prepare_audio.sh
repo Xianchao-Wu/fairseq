@@ -62,7 +62,7 @@ cp $source_dir/dict* $tgt_dir
 #setopt shwordsplit
 
 # NOTE 1
-isdone1=1
+isdone1=0
 if [ $isdone1 -eq 0 ]
 then
     echo $all_splits
@@ -86,7 +86,7 @@ then
     # train.tsv, valid.tsv 这两个文件是直接copy!
 fi
 
-isdone2=1
+isdone2=0
 if [ $isdone2 -eq 0 ]
 then
     # NOTE 2
@@ -104,7 +104,7 @@ then
     # 这是使用k-means(K=128), 来对tensor进行聚类，得到centroids.npy，128个聚类中心点
 fi
 
-isdone3=1
+isdone3=0
 if [ $isdone3 -eq 0 ]
 then
     # NOTE 3
@@ -122,15 +122,15 @@ then
     done
 fi
 
-isdone4=1
+isdone4=0
 if [ $isdone4 -eq 0 ]
 then
     # NOTE 4
     python $FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/pca.py \
         $tgt_dir/${train_split}.npy \
         --output $tgt_dir/pca \
-        --dim 16 #$dim
-        # TODO 32 to 16 for debug only
+        --dim $dim #512 #16 #$dim
+        # TODO 32 to 16 for debug only; and for real case is from 768 to 512
         # output = /workspace/asr/wav2vec/fairseq/examples/wav2vec/data/librispeech/train/train_vads/prep/pca
         # files = 16_pca_A.npy and 16_pca_b.npy
         # 这是对wav2vec2的encoding output，进行pca抽取，例如，从32维度中，抽取出来重要的16个维度。
@@ -139,7 +139,7 @@ fi
 
 for split in $all_splits; do
     # NOTE 5
-    dim=16 # for debug only TODO
+    ###dim=16 # for debug only TODO
     python $FAIRSEQ_ROOT/examples/wav2vec/unsupervised/scripts/apply_pca.py \
         $tgt_dir \
         --split $split \

@@ -48,8 +48,8 @@ class FairseqCompositeOptimizer(FairseqOptimizer):
     _optimizer: torch.optim.Optimizer
 
     def __init__(self, cfg: CompositeOptimizerConfig, params):
+        import ipdb; ipdb.set_trace() # NOTE for gan of w2v-uasr
         super().__init__(cfg)
-
         assert (
             len(params) > 1
         ), "Composite optimizer only works when there are multiple parameter groups (try fp16_no_flatten_grads: true)"

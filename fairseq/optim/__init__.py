@@ -35,11 +35,11 @@ __all__ = [
 
 
 def build_optimizer(cfg: DictConfig, params, *extra_args, **extra_kwargs):
+    import ipdb; ipdb.set_trace()
     if all(isinstance(p, dict) for p in params):
         params = [t for p in params for t in p.values()]
     params = list(filter(lambda p: p.requires_grad, params))
     return _build_optimizer(cfg, params, *extra_args, **extra_kwargs)
-
 
 # automatically import any Python files in the optim/ directory
 for file in sorted(os.listdir(os.path.dirname(__file__))):

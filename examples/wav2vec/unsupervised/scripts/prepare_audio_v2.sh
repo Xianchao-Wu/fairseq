@@ -55,7 +55,7 @@ cp $source_dir/dict* $tgt_dir
 #setopt shwordsplit
 #
 
-isdone1=1
+isdone1=0
 if [[ $isdone1 -eq 0 ]]
 then
     for split in $all_splits; do
@@ -81,7 +81,7 @@ then
     # train_0_1.len, train_0_1.npy
 fi
 
-isdone2=1
+isdone2=0
 if [[ $isdone2 -eq 0 ]]
 then
     feat_dir=$tgt_dir/mfcc
