@@ -352,7 +352,7 @@ class Generator(nn.Module):
         if tokens is not None:
             token_x = dense_x.new_zeros(tokens.numel(), self.output_dim)
             token_x.scatter_(1, tokens.view(-1, 1).long(), 1)
-            token_x = token_x.view(tokens.shape + (self.output_dim,)) # 这是0,1化了
+            token_x = token_x.view(tokens.shape + (self.output_dim,)) # 这是0,1化了,e.g., from (160, 58) to (160, 58, 43)
 
         result["dense_x"] = dense_x # generator's predicted output, 长度是wave frame的数量，有可能多个连续的frame对应到一个phoneme
         result["token_x"] = token_x # "pseudo reference" random labels (phoneme sequence batch)
@@ -536,16 +536,16 @@ class Wav2vec_U(BaseFairseqModel):
             dense_x.new_zeros(bsz * tsz, csz) # all 0
             .scatter_(-1, k.view(-1, 1), 1.0) # 根据k的指引，把对应位置设置为1.0，其他位置为0
             .view(-1, csz) # [bsz * tsz, csz]
-        )
+        ) # 注意，这个hard_x不需要grad NOTE
         hard_probs = torch.mean(hard_x.float(), dim=0) # [csz=43], 对于每个phoneme，其在bsz*tsz个位置上出现的概率（只能是0或者1 NOTE）的均值
         code_perplexity = torch.exp(
             -torch.sum(hard_probs * torch.log(hard_probs + 1e-7), dim=-1) # 目标phoneme词表的“乱度”
-        )
+        ) # no grad
 
         avg_probs = torch.softmax(dense_x.reshape(-1, csz).float(), dim=-1).mean(dim=0) # 这是使用“真实”概率得分得到的，目标phoneme词表的"概率"的在bsz*tsz个位置上的均值. 本质上是衡量词表中所有词被使用的程度--我们希望它们尽可能被“均匀”使用---问题，不应该是和english语言本身的phoneme的使用程度概率分布，正相关吗？ perplexity=e^H(p), 希望H(p)越大越好！所以这里的意思是，希望code_perplexity和prob_perplexity越大越好！ 越大，越均匀... 
         prob_perplexity = torch.exp(
             -torch.sum(avg_probs * torch.log(avg_probs + 1e-7), dim=-1)
-        )
+        ) # with grad
         # 例子1：p=[0.5, 0.5], perp=2; 例子2：p=[0.25, 0.75], perp=1.7548
         if not self.no_softmax:
             if self.training and self.gumbel:
@@ -555,7 +555,7 @@ class Wav2vec_U(BaseFairseqModel):
             else:
                 dense_x = dense_x.softmax(-1) # here
 
-        return dense_x, code_perplexity, prob_perplexity
+        return dense_x, code_perplexity, prob_perplexity # dense_x: with grad, code_perp: no grad_fn, prob_perp: with grad
 
     def forward(
         self,
@@ -619,12 +619,12 @@ class Wav2vec_U(BaseFairseqModel):
         if d_step: # for discriminator
             loss_dense = F.binary_cross_entropy_with_logits(
                 dense_y, # generator产出的结果，经过discriminator判定得到的logits
-                dense_y.new_ones(dense_y.shape) - fake_smooth,
+                dense_y.new_ones(dense_y.shape) - fake_smooth, # NOTE all 1
                 reduction="sum",
             )
             loss_token = F.binary_cross_entropy_with_logits(
                 token_y, # pseudo reference, from random labels，随机挑选的所谓“参考答案”
-                token_y.new_zeros(token_y.shape) + real_smooth,
+                token_y.new_zeros(token_y.shape) + real_smooth, # NOTE all 0
                 reduction="sum",
             )
             if self.training and self.gradient_penalty > 0:
@@ -637,11 +637,11 @@ class Wav2vec_U(BaseFairseqModel):
             loss_token = None
             loss_dense = F.binary_cross_entropy_with_logits(
                 dense_y,
-                dense_y.new_zeros(dense_y.shape) + fake_smooth, # 这是希望来自'生成器'的预测结果越接近0越好, 越接近0，则二元交叉熵的值越小
+                dense_y.new_zeros(dense_y.shape) + fake_smooth, # 这是希望来自'生成器'的预测结果越接近0越好, 越接近0，则二元交叉熵的值越小; ?? TODO
                 reduction="sum",
-            )
+            ) # 更新的理解：G是希望最小化loss_dense，即最小化dense_y和0的距离，这样的效果是，最大化dense_y(生成器的输出预测)和1的距离！NOTE
             num_vars = dense_x.size(-1) # phoneme词表大小
-            if prob_perplexity is not None:
+            if prob_perplexity is not None: # NOTE TODO why?
                 code_pen = (num_vars - prob_perplexity) / num_vars
                 code_pen = code_pen * sample_size * self.code_penalty
 
@@ -669,21 +669,21 @@ class Wav2vec_U(BaseFairseqModel):
 
         result = {
             "losses": {
-                "grad_pen": grad_pen, # g: none
-                "code_pen": code_pen, # g: 音素多样性loss
-                "smoothness": smoothness_loss, # g: 切片平滑惩罚,segment smoothness penalty
+                "grad_pen": grad_pen, # G: none; D: tensor(10284.1094, device='cuda:0', grad_fn=<MulBackward0>)
+                "code_pen": code_pen, # G: 音素多样性loss; D: None
+                "smoothness": smoothness_loss, # G: 切片平滑惩罚,segment smoothness penalty; D: None
                 "mmi": mmi_loss, # not in yet wav2vec-u1.0
             },
-            "temp": self.curr_temp, # g: temperature
-            "code_ppl": code_perplexity, # g: hardcode perp
-            "prob_ppl": prob_perplexity, # g: soft prob perp
-            "d_steps": int(d_step), # g: 0,2,...
-            "sample_size": sample_size,
+            "temp": self.curr_temp, # G: temperature 2.0; D: 1.9999
+            "code_ppl": code_perplexity, # G: hardcode perp; D: tensor(19.2105, device='cuda:0')
+            "prob_ppl": prob_perplexity, # G: soft prob perp; D: tensor(42.9978, device='cuda:0', grad_fn=<ExpBackward0>)
+            "d_steps": int(d_step), # G: 0; D: 1
+            "sample_size": sample_size, # G: 160; D: 160
         }
         import ipdb; ipdb.set_trace()
         suff = "_d" if d_step else "_g"
-        result["losses"]["dense" + suff] = loss_dense
-        result["losses"]["token" + suff] = loss_token
+        result["losses"]["dense" + suff] = loss_dense # G: ; D: tensor(110.4768, device='cuda:0', grad_fn=<BinaryCrossEntropyWithLogitsBackward0>) 
+        result["losses"]["token" + suff] = loss_token # none for G
 
         return result
 
